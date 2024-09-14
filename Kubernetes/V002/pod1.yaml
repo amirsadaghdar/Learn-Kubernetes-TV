@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: website
+    deployment: v1.0
+    tier: prod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  restartPolicy: OnFailure

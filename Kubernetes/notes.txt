@@ -1,0 +1,7 @@
+Video 001:
+Install a simple cluster.
+Connect to cluster.
+Run a few simple commands.
+
+Video 002:
+Work with the API Resources.

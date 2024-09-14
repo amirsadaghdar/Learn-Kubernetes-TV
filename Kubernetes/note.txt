@@ -1,5 +1,0 @@
-Video 001:
-Install a simple cluster and connect to it.
-Run a few simple commands.
-
-Video 002:
