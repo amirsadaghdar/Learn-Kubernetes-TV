@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   name: nginx
   labels:
-    app: website
+    app: pandora
     deployment: v1.0
     tier: prod
 spec:

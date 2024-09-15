@@ -1,8 +1,12 @@
-#########################
-## Learn Kubernetes TV ##
-#########################
+###################################
+###                             ###
+###     Learn Kubernetes TV     ###
+###                             ###
+###################################
 
-## Video 001 ##
+#################
+### Video 001 ###
+#################
 
 # Pre-reqs: aws cli, eksctl cli, kubectl.
 # C:\Users\amirs\.aws\credentials
@@ -11,11 +15,11 @@
 Set-Alias -Name k -Value "kubectl"
 alias k='kubectl'
 
-# Check what AWS account you are setup to communicate with:
+# Check what AWS account and credenstials.
 aws sts get-caller-identity
 aws s3 ls
 
-# Create a simple Kubernetes cluster.
+# Create a simple Kubernetes cluster with eksctl.
 eksctl create cluster \
     --name lkt-temp-03 \
     --region eu-west-1 \
@@ -26,11 +30,12 @@ eksctl create cluster \
 eksctl --help
 eksctl get cluster
 
-# Add a cluster to the local config file.
-aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-03
-
+# Add the cluster credentials to the local config file.
 # Config file path: ~/.kube/config
 # The config could also be setup as an env var: echo $KUBECONFIG
+aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-03
+
+# Use kubectl to interact with kubernetes content.
 kubectl config current-context
 kubectl config get-contexts
 kubectl config view
@@ -40,14 +45,16 @@ kubectl config delete-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-tem
 # Get all the pods.
 kubectl get pod -A
 
-
-## Video 002 ##
+#################
+### Video 002 ###
+#################
 
 # API Resources.
 kubectl cluster-info
 
 kubectl api-resources
 
+# Use kubectl explain to explore resource properties.
 kubectl explain pods
 kubectl explain pods.spec
 kubectl explain pods.spec.containers
@@ -59,12 +66,48 @@ kubectl get pod
 # Idempotency: kubectl apply is idempotent, meaning you can run it multiple times, and it will only make changes if there are differences between the manifest and the current state in the cluster. kubectl create is not idempotent; it will fail if the resource already exists.
 # Resource updates: kubectl create does not update resources, while kubectl apply is designed for both creation and updates.
 
+# --dry-run server and client
+# --dry-run=client - Useful for basic syntax checks of your YAML manifest. It verifies if the manifest is well-formed, but it doesn't check if the resources exist in the cluster or whether the API server would accept it.
+# --dry-run=server - Ideal for ensuring that the manifest would be accepted and applied by the cluster without actually making any changes. It can detect issues like resource types that don’t exist on the server or configuration conflicts.
 
+kubectl apply -f deployment.yaml --dry-run=client
+kubectl apply -f deployment-error1.yaml --dry-run=client
+kubectl apply -f deployment-error1.yaml --dry-run=server
+kubectl apply -f deployment-error2.yaml --dry-run=client
+kubectl apply -f deployment-error2.yaml --dry-run=server
 
-# YAML
+# Generate the YAML file to create a resource.
+kubectl create deployment nginx --image=nginx --dry-run=client -o yaml
+kubectl create deployment nginx --image=nginx --dry-run=client -o yaml
+kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deployment-dry-run.yaml
+kubectl apply -f deployment-dry-run.yaml
+kubectl get deployment
+kubectl delete deployment nginx
 
+# Use kubectl diff
+# The attribute used to identify which deployments to compare is the name of the resource (in this case, the Deployment) combined with the namespace.
+# kubectl diff requires diff to be installed on the system.
 
-# dry-run=
+kubectl apply -f deployment.yaml
+kubectl diff -f deployment-modified.yaml
+kubectl apply -f deployment-modified.yaml
+kubectl get deployment
+kubectl delete deployment hello-world
 
+#################
+### Video 003 ###
+#################
 
-# diff
+# API Resources.
+kubectl api-resources
+kubectl get deploy -A
+kubectl get po -A
+
+kubectl api-resources --api-group=apps
+kubectl api-resources --api-group=rbac.authorization.k8s.io
+
+kubectl explain pod --api-version v1
+
+#################
+### Video 004 ###
+#################
