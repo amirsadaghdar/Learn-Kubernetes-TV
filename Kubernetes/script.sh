@@ -108,6 +108,38 @@ kubectl api-resources --api-group=rbac.authorization.k8s.io
 
 kubectl explain pod --api-version v1
 
+# Structure of an API request.
+kubectl apply -f pod2.yaml
+kubectl get pod hello-world
+
+# Kubectl output verbosity and debugging levela are from 0 to 9
+kubectl get pod hello-world -v 6
+kubectl get pod hello-world -v 7
+kubectl get pod hello-world -v 8
+kubectl get pod hello-world -v 9
+
+# Use kubectl proxy to authneticate against the API Server. & allows us to run more commands.
+kubectl proxy &
+curl https://32536186885406C57BC67C60EA59EBB2.gr7.eu-west-1.eks.amazonaws.com/api/v1/namespaces/default/pods/hello-world -k
+
+fg
+ctrl+c
+
+# Use watch command on a pod.
+kubectl get pods --watch -v 6 &
+
+# Kubectl keeps the TCP session open with the server.
+netstat -a | grep kubectl
+
+#Delete the pod and we see the updates are written to our stdout..
+kubectl delete pods hello-world
+
+#But let's bring our Pod back.
+kubectl apply -f pod.yaml
+
+fg
+ctrl+c
+
 #################
 ### Video 004 ###
 #################
