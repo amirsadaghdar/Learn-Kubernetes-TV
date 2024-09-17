@@ -119,26 +119,54 @@ kubectl get pod hello-world -v 8
 kubectl get pod hello-world -v 9
 
 # Use kubectl proxy to authneticate against the API Server. & allows us to run more commands.
-kubectl proxy &
-curl https://32536186885406C57BC67C60EA59EBB2.gr7.eu-west-1.eks.amazonaws.com/api/v1/namespaces/default/pods/hello-world -k
+kubectl proxy --port=8080 &
+curl http://localhost:8080/api/v1/namespaces/default/pods/hello-world
 
-fg
-ctrl+c
+# Get the pod details in different ways.
+kubectl get pod hello-world
+kubectl describe pod hello-world
+kubectl get pod hello-world -o yaml
 
-# Use watch command on a pod.
-kubectl get pods --watch -v 6 &
-
-# Kubectl keeps the TCP session open with the server.
-netstat -a | grep kubectl
+# The --watch flag tells kubectl to continuously monitor the resources for changes. So, instead of fetching the pod status once, it keeps the terminal open and updates the list in real-time whenever there's any change.
+kubectl get pods --watch -v 6
 
 #Delete the pod and we see the updates are written to our stdout..
 kubectl delete pods hello-world
 
 #But let's bring our Pod back.
-kubectl apply -f pod.yaml
+kubectl apply -f pod2.yaml
 
-fg
-ctrl+c
+# Accessing pod logs.
+kubectl logs hello-world
+kubectl logs hello-world -v 6
+
+kubectl proxy --port=8080 &
+curl http://localhost:8080/api/v1/namespaces/default/pods/hello-world/log
+
+# Auth failure
+cp ~/.kube/config  ~/.kube/config.main
+
+# Edit the username
+vi ~/.kube/config
+
+# Try to access our cluster
+kubectl get pods -v 6
+
+# Put our backup kubeconfig back
+cp ~/.kube/config.main ~/.kube/config
+
+# Test out access to the API Server
+kubectl get pods
+
+#Missing resources, we can see the response code for this resources is 404...it's Not Found.
+kubectl get pods nginx-pod -v 6
+
+# Creating and deleting a deployment. 
+kubectl apply -f deployment.yaml -v 6
+kubectl get deployment 
+
+# Delete the deployment. We see a DELETE 200 OK and a GET 200 OK.
+kubectl delete deployment hello-world -v 6
 
 #################
 ### Video 004 ###
