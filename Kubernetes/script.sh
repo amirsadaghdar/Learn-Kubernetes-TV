@@ -148,14 +148,10 @@ cp ~/.kube/config  ~/.kube/config.main
 
 # Edit the username
 vi ~/.kube/config
-
-# Try to access our cluster
 kubectl get pods -v 6
 
 # Put our backup kubeconfig back
 cp ~/.kube/config.main ~/.kube/config
-
-# Test out access to the API Server
 kubectl get pods
 
 #Missing resources, we can see the response code for this resources is 404...it's Not Found.
@@ -170,4 +166,77 @@ kubectl delete deployment hello-world -v 6
 
 #################
 ### Video 004 ###
+#################
+
+# List of all the namespaces
+kubectl get namespaces
+
+# List of all the API resources and if they can be in a namespace
+kubectl api-resources --namespaced=true | head
+kubectl api-resources --namespaced=false | head
+
+# Understand the status of namespaces
+kubectl describe namespaces
+
+# Get the details of a namespace
+kubectl describe namespaces kube-system
+
+# Get all pods across all namespaces.
+kubectl get pods --all-namespaces
+kubectl get pods -A
+
+# Get all  resource across all namespaces
+kubectl get all --all-namespaces
+
+# Get pods in the kube-system namespace
+kubectl get pods --namespace kube-system
+
+# Imperatively create a namespace
+kubectl create namespace pandora1
+
+# Namespace character restrictions. Lower case and only dashes.
+kubectl create namespace Pandora1
+
+# Create a namespace
+cat  namespace.yaml
+kubectl apply -f namespace.yaml
+
+#Get a list of all the current namespaces
+kubectl get namespaces
+
+# Create a deployment into our pandora namespace
+cat deployment.yaml
+kubectl apply -f deployment.yaml
+
+# Create a resource imperatively
+kubectl run hello-world-pod \
+    --image=gcr.io/google-samples/hello-app:1.0 \
+    --namespace pandora1
+
+kubectl get pods
+
+#List all the pods on our namespace
+kubectl get pods --namespace pandora1
+kubectl get pods -n pandora1
+kubectl get pods -A
+
+# List  all  resources in a namespace.
+kubectl get all --namespace=pandora1
+
+# Delete all the pods in our namespace.
+# Pods under the Deployment controller will be recreated.
+kubectl delete pods --all --namespace pandora1
+kubectl get pods -n pandora1
+
+# Delete all of the resources in our namespace and the namespace.
+kubectl delete namespaces pandora1
+kubectl delete namespaces pandorainyaml
+
+#List all resources in all namespaces, now our Deployment is gone.
+kubectl get all
+kubectl get all --all-namespaces
+kubectl get all -A
+
+#################
+### Video 005 ###
 #################
