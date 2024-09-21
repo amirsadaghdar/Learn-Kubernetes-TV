@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-pod-1
+  name: nginx-pod01
   labels: 
-    app: MyWebApp
+    app: WebApp
     deployment: v1
     tier: prod
 spec:
@@ -16,9 +16,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-pod-2
+  name: nginx-pod02
   labels: 
-    app: MyWebApp
+    app: WebApp
     deployment: v1.1
     tier: prod
 spec:
@@ -31,9 +31,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-pod-3
+  name: nginx-pod03
   labels: 
-    app: MyWebApp
+    app: WebApp
     deployment: v1.1
     tier: qa
 spec:
@@ -46,9 +46,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-pod-4
+  name: nginx-pod04
   labels: 
-    app: MyAdminApp
+    app: AdminApp
     deployment: v1
     tier: prod
 spec:

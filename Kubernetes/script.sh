@@ -223,6 +223,14 @@ kubectl get pods -A
 # List  all  resources in a namespace.
 kubectl get all --namespace=pandora1
 
+# Review fargate profile.
+
+eksctl create fargateprofile \
+  --cluster lkt-temp-03 \
+  --name fp-pandora \
+  --namespace pandora1inyaml \
+  --namespace pandora1
+
 # Delete all the pods in our namespace.
 # Pods under the Deployment controller will be recreated.
 kubectl delete pods --all --namespace pandora1
@@ -240,3 +248,113 @@ kubectl get all -A
 #################
 ### Video 005 ###
 #################
+
+# Create pods with labels
+cat CreatePodsWithLabels.yaml
+kubectl apply -f CreatePodsWithLabels.yaml
+
+# Show Pod labels
+kubectl get pods --show-labels
+kubectl describe pod nginx-pod01
+
+# Query labels and selectors
+kubectl get pods --selector tier=prod
+kubectl get pods --selector tier=qa
+kubectl get pods -l tier=prod
+kubectl get pods -l tier=prod --show-labels
+kubectl get pods -l 'tier=prod,app=WebApp' --show-labels
+kubectl get pods -l 'tier=prod,app!=WebApp' --show-labels
+kubectl get pods -l 'tier in (prod,qa)'
+kubectl get pods -l 'tier notin (prod,qa)'
+
+# Output a label in column format
+kubectl get pods -L tier
+kubectl get pods -L tier,app
+
+# Edit an existing label on a pod
+kubectl get pod nginx-pod01 --show-labels
+kubectl label pod nginx-pod01 tier=non-prod --overwrite
+kubectl get pod nginx-pod01 --show-labels
+
+# Adding a new label to a pod
+kubectl get pod nginx-pod01 --show-labels
+kubectl label pod nginx-pod01 another=Label
+kubectl get pod nginx-pod01 --show-labels
+
+# Removing an existing label
+kubectl get pod nginx-pod01 --show-labels
+kubectl label pod nginx-pod01 another-
+kubectl get pod nginx-pod01 --show-labels
+
+# Performing an operation on a collection of pods based on a label query
+kubectl get pod --show-labels
+kubectl label pod --all tier=non-prod --overwrite
+kubectl get pod --show-labels
+
+# Delete all pods matching our non-prod label
+kubectl delete pod -l tier=non-prod
+
+#And we're left with nothing.
+kubectl get pods --show-labels
+
+# Kubernetes Resource Management
+# Create  a Deployment with 3 replicas.
+# This selector is telling Kubernetes that the Deployment should manage Pods whose labels include app: hello-world. The selector is used to match Pods that were either created by this Deployment or manually labeled with the same app label.
+kubectl apply -f deployment-label.yaml
+
+# Expose the  Deployment as  Service.
+kubectl apply -f service.yaml
+
+# The deployment has a selector for app=hello-world
+kubectl describe deployment hello-world
+kubectl describe replicaset hello-world-58fc685665
+kubectl describe pod hello-world-58fc685665-czglz
+kubectl describe replicaset hello-world
+
+# The Pods have labels for app=hello-world and for the pod-temlpate-hash of the current ReplicaSet
+kubectl get pods --show-labels
+
+# Edit the label on one of the Pods in the ReplicaSet and review the results.
+kubectl label pod hello-world-58fc685665-czglz pod-template-hash=DEBUG --overwrite
+kubectl get pods --show-labels
+
+# Services use labels and selectors.
+kubectl get service
+kubectl describe service hello-world
+
+# Get a list of all pods and IPs in the service.
+kubectl describe endpoints hello-world
+kubectl get pod -o wide
+kubectl get pods --show-labels
+kubectl label pod hello-world-58fc685665-czglz app=DEBUG --overwrite
+kubectl get pods --show-labels
+kubectl describe endpoints hello-world
+
+# Delete the deployment, service and the Pod removed from the replicaset
+kubectl delete deployment hello-world -n pandora1
+kubectl delete service hello-world
+kubectl delete pod hello-world-58fc685665-czglz
+
+# Scheduling a pod to a node
+# Review how labels can be used to impact pod scheduling.
+kubectl get nodes --show-labels
+
+kubectl label node fargate-ip-192-168-125-157.eu-west-1.compute.internal disk=local_ssd
+kubectl label node fargate-ip-192-168-99-249.eu-west-1.compute.internal hardware=local_gpu
+
+kubectl get node -L disk,hardware
+
+# Create three Pods, two using nodeSelector, one without.
+cat PodsToNodes.yaml
+kubectl apply -f PodsToNodes.yaml
+
+# View the scheduling of the pods in the cluster.
+kubectl get node -L disk,hardware
+kubectl get pods -o wide
+
+#Clean up when we're finished, delete our labels and Pods
+kubectl label node c1-node2 disk-
+kubectl label node c1-node3 hardware-
+kubectl delete pod nginx-pod
+kubectl delete pod nginx-pod-gpu
+kubectl delete pod nginx-pod-ssd
