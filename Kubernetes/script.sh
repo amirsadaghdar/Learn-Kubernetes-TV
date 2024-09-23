@@ -9,25 +9,26 @@
 #################
 
 # Pre-reqs: aws cli, eksctl cli, kubectl.
-# C:\Users\amirs\.aws\credentials
 
-# Create Aliases
-Set-Alias -Name k -Value "kubectl"
-alias k='kubectl'
+# Setup the AWS iam user.
+
+# C:\Users\amirs\.aws\credentials.
 
 # Check what AWS account and credenstials.
 aws sts get-caller-identity
 aws s3 ls
 
 # Create a simple Kubernetes cluster with eksctl.
+# Make sure eksctl is updated.
 eksctl create cluster \
-    --name lkt-temp-03 \
+    --name lkt-temp-04 \
     --region eu-west-1 \
     --fargate \
     --version 1.30 \
     --tags "env=dev,owner=it"
 
 eksctl --help
+eksctl info
 eksctl get cluster
 
 # Add the cluster credentials to the local config file.
@@ -49,27 +50,26 @@ kubectl get pod -A
 ### Video 002 ###
 #################
 
-# API Resources.
+# Get infromation about the cluster we are connected to.
 kubectl cluster-info
 
+# Get a list of all API resources available to us in this cluster.
 kubectl api-resources
 
-# Use kubectl explain to explore resource properties.
+# Use kubectl explain to explore resource structure and properties.
 kubectl explain pods
 kubectl explain pods.spec
 kubectl explain pods.spec.containers
 
-kubectl apply -f pod1.yaml
-kubectl get pod
-
 # Key Differences between kubectl apply and kubectl create:
 # Idempotency: kubectl apply is idempotent, meaning you can run it multiple times, and it will only make changes if there are differences between the manifest and the current state in the cluster. kubectl create is not idempotent; it will fail if the resource already exists.
 # Resource updates: kubectl create does not update resources, while kubectl apply is designed for both creation and updates.
+kubectl apply -f pod1.yaml
+kubectl get pod
 
 # --dry-run server and client
 # --dry-run=client - Useful for basic syntax checks of your YAML manifest. It verifies if the manifest is well-formed, but it doesn't check if the resources exist in the cluster or whether the API server would accept it.
 # --dry-run=server - Ideal for ensuring that the manifest would be accepted and applied by the cluster without actually making any changes. It can detect issues like resource types that don’t exist on the server or configuration conflicts.
-
 kubectl apply -f deployment.yaml --dry-run=client
 kubectl apply -f deployment-error1.yaml --dry-run=client
 kubectl apply -f deployment-error1.yaml --dry-run=server
@@ -77,7 +77,6 @@ kubectl apply -f deployment-error2.yaml --dry-run=client
 kubectl apply -f deployment-error2.yaml --dry-run=server
 
 # Generate the YAML file to create a resource.
-kubectl create deployment nginx --image=nginx --dry-run=client -o yaml
 kubectl create deployment nginx --image=nginx --dry-run=client -o yaml
 kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deployment-dry-run.yaml
 kubectl apply -f deployment-dry-run.yaml
@@ -264,8 +263,8 @@ kubectl get pods -l tier=prod
 kubectl get pods -l tier=prod --show-labels
 kubectl get pods -l 'tier=prod,app=WebApp' --show-labels
 kubectl get pods -l 'tier=prod,app!=WebApp' --show-labels
-kubectl get pods -l 'tier in (prod,qa)'
-kubectl get pods -l 'tier notin (prod,qa)'
+kubectl get pods -l 'tier in (prod,qa)' --show-labels
+kubectl get pods -l 'tier notin (prod,qa)' --show-labels
 
 # Output a label in column format
 kubectl get pods -L tier
@@ -292,14 +291,14 @@ kubectl label pod --all tier=non-prod --overwrite
 kubectl get pod --show-labels
 
 # Delete all pods matching our non-prod label
+kubectl get pod --show-labels
 kubectl delete pod -l tier=non-prod
-
-#And we're left with nothing.
 kubectl get pods --show-labels
 
 # Kubernetes Resource Management
 # Create  a Deployment with 3 replicas.
-# This selector is telling Kubernetes that the Deployment should manage Pods whose labels include app: hello-world. The selector is used to match Pods that were either created by this Deployment or manually labeled with the same app label.
+# This selector is telling Kubernetes that the Deployment should manage Pods whose labels include app: hello-world.
+# The selector is used to match Pods that were either created by this Deployment or manually labeled with the same app label.
 kubectl apply -f deployment-label.yaml
 
 # Expose the  Deployment as  Service.
@@ -308,14 +307,14 @@ kubectl apply -f service.yaml
 # The deployment has a selector for app=hello-world
 kubectl describe deployment hello-world
 kubectl describe replicaset hello-world-58fc685665
-kubectl describe pod hello-world-58fc685665-czglz
+kubectl describe pod hello-world-58fc685665-c272r
 kubectl describe replicaset hello-world
 
 # The Pods have labels for app=hello-world and for the pod-temlpate-hash of the current ReplicaSet
 kubectl get pods --show-labels
 
 # Edit the label on one of the Pods in the ReplicaSet and review the results.
-kubectl label pod hello-world-58fc685665-czglz pod-template-hash=DEBUG --overwrite
+kubectl label pod hello-world-58fc685665-c272r pod-template-hash=DEBUG --overwrite
 kubectl get pods --show-labels
 
 # Services use labels and selectors.
@@ -326,21 +325,23 @@ kubectl describe service hello-world
 kubectl describe endpoints hello-world
 kubectl get pod -o wide
 kubectl get pods --show-labels
-kubectl label pod hello-world-58fc685665-czglz app=DEBUG --overwrite
+kubectl label pod hello-world-58fc685665-c272r app=DEBUG --overwrite
 kubectl get pods --show-labels
 kubectl describe endpoints hello-world
 
 # Delete the deployment, service and the Pod removed from the replicaset
-kubectl delete deployment hello-world -n pandora1
+kubectl delete deployment hello-world
 kubectl delete service hello-world
-kubectl delete pod hello-world-58fc685665-czglz
+kubectl get pods --show-labels
+kubectl delete pod hello-world-58fc685665-c272r
 
 # Scheduling a pod to a node
+# Fargate does not support nodeSelector part of pod config.
 # Review how labels can be used to impact pod scheduling.
 kubectl get nodes --show-labels
 
-kubectl label node fargate-ip-192-168-125-157.eu-west-1.compute.internal disk=local_ssd
-kubectl label node fargate-ip-192-168-99-249.eu-west-1.compute.internal hardware=local_gpu
+kubectl label node ip-192-168-10-6.eu-west-1.compute.internal disk=local_ssd
+kubectl label node ip-192-168-80-2.eu-west-1.compute.internal hardware=local_gpu
 
 kubectl get node -L disk,hardware
 
@@ -352,9 +353,9 @@ kubectl apply -f PodsToNodes.yaml
 kubectl get node -L disk,hardware
 kubectl get pods -o wide
 
-#Clean up when we're finished, delete our labels and Pods
-kubectl label node c1-node2 disk-
-kubectl label node c1-node3 hardware-
+# Clean up when we're finished, delete our labels and Pods
+kubectl label node fargate-ip-192-168-125-157.eu-west-1.compute.internal disk-
+kubectl label node fargate-ip-192-168-99-249.eu-west-1.compute.internal hardware-
 kubectl delete pod nginx-pod
 kubectl delete pod nginx-pod-gpu
 kubectl delete pod nginx-pod-ssd
