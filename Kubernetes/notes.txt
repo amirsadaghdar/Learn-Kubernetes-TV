@@ -1,3 +1,7 @@
+I have a YouTube channel called learn Kubernetes tv.
+I am going to start a hands-on session on teach Kubernetes on AWS.
+Could you please write the script for my first video which will cover the code below?
+
 Video 001:
 Install a simple cluster.
 Connect to cluster.

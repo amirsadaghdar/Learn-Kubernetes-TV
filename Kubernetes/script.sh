@@ -8,11 +8,15 @@
 ### Video 001 ###
 #################
 
-# Pre-reqs: aws cli, eksctl cli, kubectl.
+# Pre-reqs: aws cli, eksctl, kubectl.
+# https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+# https://eksctl.io/installation/
+# https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/
 
 # Setup the AWS iam user.
 
-# C:\Users\amirs\.aws\credentials.
+# AWS credentials are stored in ~/.aws/credentials
+cat ~/.aws/credentials
 
 # Check what AWS account and credenstials.
 aws sts get-caller-identity
@@ -20,6 +24,11 @@ aws s3 ls
 
 # Create a simple Kubernetes cluster with eksctl.
 # Make sure eksctl is updated.
+eksctl --help
+eksctl version
+eksctl info
+eksctl get cluster
+
 eksctl create cluster \
     --name lkt-temp-04 \
     --region eu-west-1 \
@@ -27,14 +36,11 @@ eksctl create cluster \
     --version 1.30 \
     --tags "env=dev,owner=it"
 
-eksctl --help
-eksctl info
-eksctl get cluster
-
 # Add the cluster credentials to the local config file.
-# Config file path: ~/.kube/config
+# Kubeconfig file path: ~/.kube/config
 # The config could also be setup as an env var: echo $KUBECONFIG
 aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-03
+cat ~/.kube/config
 
 # Use kubectl to interact with kubernetes content.
 kubectl config current-context
@@ -65,6 +71,9 @@ kubectl explain pods.spec.containers
 # Idempotency: kubectl apply is idempotent, meaning you can run it multiple times, and it will only make changes if there are differences between the manifest and the current state in the cluster. kubectl create is not idempotent; it will fail if the resource already exists.
 # Resource updates: kubectl create does not update resources, while kubectl apply is designed for both creation and updates.
 kubectl apply -f pod1.yaml
+kubectl get pod
+kubectl delete pod nginx
+kubectl create -f pod1.yaml
 kubectl get pod
 
 # --dry-run server and client
@@ -99,7 +108,9 @@ kubectl delete deployment hello-world
 
 # API Resources.
 kubectl api-resources
+kubectl get deployment --all-namespaces
 kubectl get deploy -A
+kubectl get pod --all-namespaces
 kubectl get po -A
 
 kubectl api-resources --api-group=apps
