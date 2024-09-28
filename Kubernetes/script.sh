@@ -38,7 +38,6 @@ eksctl create cluster \
 
 # Add the cluster credentials to the local config file.
 # Kubeconfig file path: ~/.kube/config
-# The config could also be setup as an env var: echo $KUBECONFIG
 aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-03
 cat ~/.kube/config
 
@@ -68,8 +67,6 @@ kubectl explain pods.spec
 kubectl explain pods.spec.containers
 
 # Key Differences between kubectl apply and kubectl create:
-# Idempotency: kubectl apply is idempotent, meaning you can run it multiple times, and it will only make changes if there are differences between the manifest and the current state in the cluster. kubectl create is not idempotent; it will fail if the resource already exists.
-# Resource updates: kubectl create does not update resources, while kubectl apply is designed for both creation and updates.
 kubectl apply -f pod1.yaml
 kubectl get pod
 kubectl delete pod nginx
@@ -77,8 +74,6 @@ kubectl create -f pod1.yaml
 kubectl get pod
 
 # --dry-run server and client
-# --dry-run=client - Useful for basic syntax checks of your YAML manifest. It verifies if the manifest is well-formed, but it doesn't check if the resources exist in the cluster or whether the API server would accept it.
-# --dry-run=server - Ideal for ensuring that the manifest would be accepted and applied by the cluster without actually making any changes. It can detect issues like resource types that don’t exist on the server or configuration conflicts.
 kubectl apply -f deployment.yaml --dry-run=client
 kubectl apply -f deployment-error1.yaml --dry-run=client
 kubectl apply -f deployment-error1.yaml --dry-run=server
@@ -93,9 +88,6 @@ kubectl get deployment
 kubectl delete deployment nginx
 
 # Use kubectl diff
-# The attribute used to identify which deployments to compare is the name of the resource (in this case, the Deployment) combined with the namespace.
-# kubectl diff requires diff to be installed on the system.
-
 kubectl apply -f deployment.yaml
 kubectl diff -f deployment-modified.yaml
 kubectl apply -f deployment-modified.yaml
@@ -108,8 +100,14 @@ kubectl delete deployment hello-world
 
 # API Resources.
 kubectl api-resources
+
+# Use get command
+kubectl get deployment
+kubectl get pod
+
 kubectl get deployment --all-namespaces
 kubectl get deploy -A
+
 kubectl get pod --all-namespaces
 kubectl get po -A
 
@@ -117,6 +115,7 @@ kubectl api-resources --api-group=apps
 kubectl api-resources --api-group=rbac.authorization.k8s.io
 
 kubectl explain pod --api-version v1
+kubectl explain pod --api-version v1beta1
 
 # Structure of an API request.
 kubectl apply -f pod2.yaml
@@ -137,7 +136,7 @@ kubectl get pod hello-world
 kubectl describe pod hello-world
 kubectl get pod hello-world -o yaml
 
-# The --watch flag tells kubectl to continuously monitor the resources for changes. So, instead of fetching the pod status once, it keeps the terminal open and updates the list in real-time whenever there's any change.
+# The --watch flag tells kubectl to continuously monitor the resources for changes.
 kubectl get pods --watch -v 6
 
 #Delete the pod and we see the updates are written to our stdout..
