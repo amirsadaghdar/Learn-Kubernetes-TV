@@ -38,7 +38,7 @@ eksctl create cluster \
 
 # Add the cluster credentials to the local config file.
 # Kubeconfig file path: ~/.kube/config
-aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-03
+aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-04
 cat ~/.kube/config
 
 # Use kubectl to interact with kubernetes content.
@@ -102,7 +102,7 @@ kubectl delete deployment hello-world
 kubectl api-resources
 
 # Use get command
-kubectl get deployment
+kubectl get deployment  
 kubectl get pod
 
 kubectl get deployment --all-namespaces
@@ -115,13 +115,13 @@ kubectl api-resources --api-group=apps
 kubectl api-resources --api-group=rbac.authorization.k8s.io
 
 kubectl explain pod --api-version v1
-kubectl explain pod --api-version v1beta1
 
 # Structure of an API request.
 kubectl apply -f pod2.yaml
 kubectl get pod hello-world
 
 # Kubectl output verbosity and debugging levela are from 0 to 9
+kubectl get pod hello-world -v 5
 kubectl get pod hello-world -v 6
 kubectl get pod hello-world -v 7
 kubectl get pod hello-world -v 8
@@ -163,10 +163,10 @@ kubectl get pods -v 6
 cp ~/.kube/config.main ~/.kube/config
 kubectl get pods
 
-#Missing resources, we can see the response code for this resources is 404...it's Not Found.
+# Resources Not Found. We can see the response code for this resources is 404.
 kubectl get pods nginx-pod -v 6
 
-# Creating and deleting a deployment. 
+# Creating and deleting a deployment. First checks to get a 404 and then creates the reosuce and get a 201.
 kubectl apply -f deployment.yaml -v 6
 kubectl get deployment 
 
@@ -190,6 +190,18 @@ kubectl describe namespaces
 # Get the details of a namespace
 kubectl describe namespaces kube-system
 
+# Set limit and quota on a namespace.
+kubectl apply -f ns-limit.yaml
+kubectl apply -f ns-quota.yaml
+
+# Get limit and quota of a namespace.
+kubectl describe limitrange -n kube-system
+kubectl describe resourcequota -n kube-system
+
+# Remove limit and quota from a namespace.
+kubectl delete limitrange example-limits -n kube-system
+kubectl delete resourcequota example-quota -n kube-system
+
 # Get all pods across all namespaces.
 kubectl get pods --all-namespaces
 kubectl get pods -A
@@ -204,44 +216,50 @@ kubectl get pods --namespace kube-system
 kubectl create namespace pandora1
 
 # Namespace character restrictions. Lower case and only dashes.
-kubectl create namespace Pandora1
+kubectl create namespace Pandora2
+kubectl create namespace pandora3-
 
 # Create a namespace
 cat  namespace.yaml
 kubectl apply -f namespace.yaml
 
-#Get a list of all the current namespaces
+# Get a list of all the current namespaces
 kubectl get namespaces
 
 # Create a deployment into our pandora namespace
 cat deployment.yaml
 kubectl apply -f deployment.yaml
+kubectl get deployment -n pandora1
+kubectl describe deployment hello-world -n pandora1
 
 # Create a resource imperatively
 kubectl run hello-world-pod \
     --image=gcr.io/google-samples/hello-app:1.0 \
     --namespace pandora1
 
-kubectl get pods
+kubectl get pods -n pandora1
+kubectl describe pod hello-world-pod -n pandora1
 
-#List all the pods on our namespace
+# Create fargate profile.
+eksctl create fargateprofile \
+  --cluster lkt-temp-04 \
+  --name fp-pandora \
+  --namespace pandora1inyaml \
+  --namespace pandora1
+
+kubectl delete pods --all --namespace pandora1
+
+# List all the pods on our namespace
 kubectl get pods --namespace pandora1
 kubectl get pods -n pandora1
 kubectl get pods -A
 
 # List  all  resources in a namespace.
-kubectl get all --namespace=pandora1
-
-# Review fargate profile.
-
-eksctl create fargateprofile \
-  --cluster lkt-temp-03 \
-  --name fp-pandora \
-  --namespace pandora1inyaml \
-  --namespace pandora1
+kubectl get all --namespace pandora1
 
 # Delete all the pods in our namespace.
 # Pods under the Deployment controller will be recreated.
+kubectl delete deployment hello-world --namespace pandora1
 kubectl delete pods --all --namespace pandora1
 kubectl get pods -n pandora1
 
