@@ -325,8 +325,6 @@ kubectl get pods --show-labels
 
 # Kubernetes Resource Management
 # Create  a Deployment with 3 replicas.
-# This selector is telling Kubernetes that the Deployment should manage Pods whose labels include app: hello-world.
-# The selector is used to match Pods that were either created by this Deployment or manually labeled with the same app label.
 kubectl apply -f deployment-label.yaml
 
 # Expose the  Deployment as  Service.
@@ -364,7 +362,7 @@ kubectl get pods --show-labels
 kubectl delete pod hello-world-58fc685665-c272r
 
 # Scheduling a pod to a node
-# Fargate does not support nodeSelector part of pod config.
+# Fargate does not support nodeSelector as part of pod config.
 # Review how labels can be used to impact pod scheduling.
 kubectl get nodes --show-labels
 
