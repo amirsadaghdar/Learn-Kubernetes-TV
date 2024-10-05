@@ -277,8 +277,8 @@ kubectl get all -A
 #################
 
 # Create pods with labels
-cat CreatePodsWithLabels.yaml
-kubectl apply -f CreatePodsWithLabels.yaml
+cat pods-labels.yaml
+kubectl apply -f pods-labels.yaml
 
 # Show Pod labels
 kubectl get pods --show-labels
@@ -304,12 +304,10 @@ kubectl label pod nginx-pod01 tier=non-prod --overwrite
 kubectl get pod nginx-pod01 --show-labels
 
 # Adding a new label to a pod
-kubectl get pod nginx-pod01 --show-labels
 kubectl label pod nginx-pod01 another=Label
 kubectl get pod nginx-pod01 --show-labels
 
 # Removing an existing label
-kubectl get pod nginx-pod01 --show-labels
 kubectl label pod nginx-pod01 another-
 kubectl get pod nginx-pod01 --show-labels
 
@@ -319,13 +317,13 @@ kubectl label pod --all tier=non-prod --overwrite
 kubectl get pod --show-labels
 
 # Delete all pods matching our non-prod label
-kubectl get pod --show-labels
 kubectl delete pod -l tier=non-prod
 kubectl get pods --show-labels
 
 # Kubernetes Resource Management
-# Create  a Deployment with 3 replicas.
+# Create  a Deployment with 4 replicas.
 kubectl apply -f deployment-label.yaml
+kubectl get pods
 
 # Expose the  Deployment as  Service.
 kubectl apply -f service.yaml
@@ -333,14 +331,14 @@ kubectl apply -f service.yaml
 # The deployment has a selector for app=hello-world
 kubectl describe deployment hello-world
 kubectl describe replicaset hello-world-58fc685665
-kubectl describe pod hello-world-58fc685665-c272r
+kubectl describe pod hello-world-58fc685665-65gdk
 kubectl describe replicaset hello-world
 
 # The Pods have labels for app=hello-world and for the pod-temlpate-hash of the current ReplicaSet
 kubectl get pods --show-labels
 
 # Edit the label on one of the Pods in the ReplicaSet and review the results.
-kubectl label pod hello-world-58fc685665-c272r pod-template-hash=DEBUG --overwrite
+kubectl label pod hello-world-58fc685665-65gdk pod-template-hash=DEBUG --overwrite
 kubectl get pods --show-labels
 
 # Services use labels and selectors.
@@ -351,19 +349,20 @@ kubectl describe service hello-world
 kubectl describe endpoints hello-world
 kubectl get pod -o wide
 kubectl get pods --show-labels
-kubectl label pod hello-world-58fc685665-c272r app=DEBUG --overwrite
+kubectl label pod hello-world-58fc685665-65gdk app=DEBUG --overwrite
 kubectl get pods --show-labels
 kubectl describe endpoints hello-world
+kubectl describe service hello-world
 
 # Delete the deployment, service and the Pod removed from the replicaset
 kubectl delete deployment hello-world
 kubectl delete service hello-world
 kubectl get pods --show-labels
-kubectl delete pod hello-world-58fc685665-c272r
+kubectl delete pod hello-world-58fc685665-65gdk
 
 # Scheduling a pod to a node
-# Fargate does not support nodeSelector as part of pod config.
 # Review how labels can be used to impact pod scheduling.
+# Fargate does not support nodeSelector as part of pod config. We create a node group.
 kubectl get nodes --show-labels
 
 kubectl label node ip-192-168-10-6.eu-west-1.compute.internal disk=local_ssd
@@ -372,8 +371,8 @@ kubectl label node ip-192-168-80-2.eu-west-1.compute.internal hardware=local_gpu
 kubectl get node -L disk,hardware
 
 # Create three Pods, two using nodeSelector, one without.
-cat PodsToNodes.yaml
-kubectl apply -f PodsToNodes.yaml
+cat pods-nodes.yaml
+kubectl apply -f pods-nodes.yaml
 
 # View the scheduling of the pods in the cluster.
 kubectl get node -L disk,hardware
