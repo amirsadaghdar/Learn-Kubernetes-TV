@@ -2,10 +2,32 @@ I have a YouTube channel called learn Kubernetes tv.
 I am running hands-on sessions on Kubernetes running on AWS.
 Could you please write the script this video which will cover the code below?
 
-Video 001:
-Install a simple cluster.
-Connect to cluster.
-Run a few simple commands.
+Video 001: Setting Up Kubernetes on AWS with eksctl
+Pre-requisites: AWS CLI, eksctl, and kubectl installation.
+Set up AWS IAM user and credentials.
+Create a simple Fargate-based Kubernetes cluster with eksctl.
+Update kubeconfig and use kubectl to view cluster contexts and pods.
 
-Video 002:
-Work with the API Resources.
+Video 002: Exploring Kubernetes API and Basic Commands
+Use kubectl to gather cluster info and explore API resources.
+Compare kubectl apply vs. kubectl create.
+Demonstrate dry-run modes and YAML file generation.
+Use kubectl diff to compare resources and update deployments.
+
+Video 003: API Resources, Verbosity, and Debugging
+Detailed look at API resources and how to query them.
+Explore verbosity levels for debugging with kubectl.
+Use kubectl proxy for API server communication.
+Manage pod creation, deletion, and access pod logs with verbosity.
+
+Video 004: Working with Namespaces, Quotas, and Fargate Profiles
+List, describe, and manage namespaces.
+Apply limits and quotas to namespaces.
+Create and manage deployments within a namespace.
+Use Fargate profiles for namespace-specific workloads.
+
+Video 005: Labels, Selectors, and Node Scheduling
+Apply, query, and manage pod labels.
+Perform label-based pod operations and delete pods based on labels.
+Create deployments and services using labels.
+Demonstrate how node labels impact pod scheduling and clean up after operations.

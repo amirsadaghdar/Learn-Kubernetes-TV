@@ -365,8 +365,8 @@ kubectl delete pod hello-world-58fc685665-65gdk
 # Fargate does not support nodeSelector as part of pod config. We create a node group.
 kubectl get nodes --show-labels
 
-kubectl label node ip-192-168-10-6.eu-west-1.compute.internal disk=local_ssd
-kubectl label node ip-192-168-80-2.eu-west-1.compute.internal hardware=local_gpu
+kubectl label node ip-192-168-25-61.eu-west-1.compute.internal disk=local_ssd
+kubectl label node ip-192-168-79-9.eu-west-1.compute.internal hardware=local_gpu
 
 kubectl get node -L disk,hardware
 
@@ -378,9 +378,39 @@ kubectl apply -f pods-nodes.yaml
 kubectl get node -L disk,hardware
 kubectl get pods -o wide
 
-# Clean up when we're finished, delete our labels and Pods
-kubectl label node fargate-ip-192-168-125-157.eu-west-1.compute.internal disk-
-kubectl label node fargate-ip-192-168-99-249.eu-west-1.compute.internal hardware-
+# Clean up when we're finished, delete our labels and Pods.
 kubectl delete pod nginx-pod
 kubectl delete pod nginx-pod-gpu
 kubectl delete pod nginx-pod-ssd
+
+#################
+### Video 006 ###
+#################
+
+# Run kubectl get events --watch.
+kubectl get events --watch &
+
+# Create a pod to see the scheduling process.
+kubectl apply -f pod.yaml
+
+# Create a Deployment with 1 replica.
+kubectl apply -f deployment.yaml
+
+# Scale a Deployment to 2 replicas.
+kubectl scale deployment hello-world --replicas=2
+
+# Scale down to 1 replica.
+kubectl scale deployment hello-world --replicas=1
+
+kubectl get pods -A
+
+# Run a command inside our container.
+kubectl -v 6 exec -it hello-world-58fc685665-m87qw -- /bin/sh
+ps
+exit
+
+# Review the process on the node that runs the pod.
+kubectl get pods -o wide
+ssh ec2-user@ip-192-168-79-9.eu-west-1.compute.internal
+ps -aux | grep hello-app
+exit
