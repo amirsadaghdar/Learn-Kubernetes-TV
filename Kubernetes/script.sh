@@ -30,7 +30,7 @@ eksctl info
 eksctl get cluster
 
 eksctl create cluster \
-    --name lkt-temp-04 \
+    --name lkt-temp-08 \
     --region eu-west-1 \
     --fargate \
     --version 1.30 \
@@ -38,7 +38,7 @@ eksctl create cluster \
 
 # Add the cluster credentials to the local config file.
 # Kubeconfig file path: ~/.kube/config
-aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-04
+aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-08
 cat ~/.kube/config
 
 # Use kubectl to interact with kubernetes content.
@@ -405,12 +405,32 @@ kubectl scale deployment hello-world --replicas=1
 kubectl get pods -A
 
 # Run a command inside our container.
-kubectl -v 6 exec -it hello-world-58fc685665-m87qw -- /bin/sh
+kubectl -v 6 exec -it hello-world-7ccb7779c9-fhm6k -- /bin/sh
 ps
 exit
 
 # Review the process on the node that runs the pod.
-kubectl get pods -o wide
-ssh ec2-user@ip-192-168-79-9.eu-west-1.compute.internal
-ps -aux | grep hello-app
-exit
+# kubectl get pods -o wide
+# ssh ec2-user@ip-192-168-79-9.eu-west-1.compute.internal
+# ps -aux | grep hello-app
+# exit
+
+# Access Pod's application directly, without a service.
+kubectl port-forward hello-world-58fc685665-xl659 80:8080
+
+#cLet's do it again a non-priviledged port
+kubectl port-forward hello-world-58fc685665-xl659 8080:8080 &
+
+#We can point curl to localhost, and kubectl port-forward will send the traffic through the API server to the Pod
+curl http://localhost:8080
+
+#Kill our port forward session.
+fg
+ctrl+c
+
+kubectl delete deployment hello-world
+kubectl delete pod hello-world-pod
+
+#Kill off the kubectl get events
+fg
+ctrl+c
