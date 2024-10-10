@@ -417,20 +417,44 @@ exit
 
 # Access Pod's application directly, without a service.
 kubectl port-forward hello-world-58fc685665-xl659 80:8080
-
-#cLet's do it again a non-priviledged port
 kubectl port-forward hello-world-58fc685665-xl659 8080:8080 &
 
-#We can point curl to localhost, and kubectl port-forward will send the traffic through the API server to the Pod
+# Kubectl port-forward will send the traffic through the API server to the Pod
 curl http://localhost:8080
 
-#Kill our port forward session.
+# Kill our port forward session.
 fg
 ctrl+c
 
 kubectl delete deployment hello-world
 kubectl delete pod hello-world-pod
 
-#Kill off the kubectl get events
+# Kill off the kubectl get events
 fg
 ctrl+c
+
+# Static pods
+# Create a pod manifest.
+kubectl run hello-world --image=gcr.io/google-samples/hello-app:2.0 --dry-run=client -o yaml --port=8080
+
+# Log into a node via ssm
+
+# Find the static pod path:
+sudo cat /var/lib/kubelet/config.yaml
+
+# Create a Pod manifest in the staticPodPath.
+sudo vi /etc/kubernetes/manifests/mypod.yaml
+ls /etc/kubernetes/manifests
+
+# List all the pods. The pods name is podname + node name
+kubectl get pods -o wide
+
+# Deleting a static pod only delete the mirror pod not the actual pod.
+kubectl delete pod hello-world-c1-node1
+kubectl get pods 
+
+# Remove the static pod manifest on the node
+sudo rm /etc/kubernetes/manifests/mypod.yaml
+
+# The pod is now gone.
+kubectl get pods 
