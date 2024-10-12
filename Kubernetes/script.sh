@@ -410,10 +410,9 @@ ps
 exit
 
 # Review the process on the node that runs the pod.
-# kubectl get pods -o wide
-# ssh ec2-user@ip-192-168-79-9.eu-west-1.compute.internal
-# ps -aux | grep hello-app
-# exit
+kubectl get pods -o wide
+ps -aux | grep hello-app
+exit
 
 # Access Pod's application directly, without a service.
 kubectl port-forward hello-world-58fc685665-xl659 80:8080
@@ -458,3 +457,35 @@ sudo rm /etc/kubernetes/manifests/mypod.yaml
 
 # The pod is now gone.
 kubectl get pods 
+
+#################
+### Video 007 ###
+#################
+
+# Review the multi container pod definition
+cat multicontainer-pod.yaml
+
+# Create our multi-container Pod.
+kubectl apply -f multicontainer-pod.yaml
+
+# Cnnect to our Pod.
+kubectl exec -it multicontainer-pod -- /bin/sh
+ls -la /var/log
+tail /var/log/index.html
+exit
+
+# Specify a container name and access the consumer container in our Pod
+kubectl exec -it multicontainer-pod --container consumer -- /bin/sh
+ls -la /usr/share/nginx/html
+tail /usr/share/nginx/html/index.html
+exit
+
+#This application listens on port 80, we'll forward from 8080->80
+kubectl port-forward multicontainer-pod 8080:80 &
+curl http://localhost:8080
+
+#Kill our port-forward.
+fg
+ctrl+c
+
+kubectl delete pod multicontainer-pod

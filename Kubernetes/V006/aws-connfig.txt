@@ -1,3 +1,5 @@
+# SSM for Console Access
+
 You reached out for support in gaining shell access to your EKS worker node instances.
 Using resources [1] and [2] below as a guide, we added the AWS Managed policy 'AmazonSSMManagedInstanceCore' to your node's IAM role 'eks-core-03-self-managed' to ensure the instance could perform the necessary SSM api calls to register as needed for SSM connections.
 
@@ -13,3 +15,15 @@ Considering the instances were launched in private subnets, we also added the fo
     ssmmessages.eu-west-1.amazonaws.com
 
 After terminating the old node that was created prior to the above VPC interface endpoints to cause a new node to be created, we confirmed that you were able to connect to the instance via Session Manager from the EC2 Console, which resolved the issue.
+
+# Kubelet Config
+Modify /etc/kubernetes/kubelet/kubelet-config.json
+Add  "staticPodPath": "/etc/kubernetes/manifests"
+
+Run:
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+Add the pod manifest to/etc/kubernetes/manifests
+
+sudo crictl ps
