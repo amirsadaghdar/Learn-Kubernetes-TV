@@ -489,3 +489,16 @@ fg
 ctrl+c
 
 kubectl delete pod multicontainer-pod
+
+# Init container.
+# Init container runs to completion. Then the other container will start and the Pod status changes to Running.
+kubectl get pods --watch &
+
+cat init-containers.yaml
+kubectl apply -f init-containers.yaml
+
+# Each init container starta serially and then the application container starts last.
+kubectl describe pods init-containers
+
+# Delete the pod
+kubectl delete -f init-containers.yaml
