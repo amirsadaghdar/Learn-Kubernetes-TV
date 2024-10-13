@@ -502,3 +502,57 @@ kubectl describe pods init-containers
 
 # Delete the pod
 kubectl delete -f init-containers.yaml
+
+#################
+### Video 008 ###
+#################
+
+# Start  kubectl get events.
+kubectl get events --watch &
+
+# Create a pod.
+kubectl apply -f pod.yaml
+
+# Use killall to kill the hello-app process inside our container
+kubectl exec -it hello-world-pod -- /bin/sh
+ps
+exit
+
+kubectl exec -it hello-world-pod -- /usr/bin/killall hello-app
+
+# The restart count increased by 1 after the container needed to be restarted.
+kubectl get pods
+kubectl describe pod hello-world-pod
+
+kubectl delete pod hello-world-pod
+
+fg
+ctrl+c
+
+# Explore pod restartPolicy
+kubectl explain pods.spec.restartPolicy
+
+# Create pods with the restart policy
+cat  pod-restart-policy.yaml
+kubectl apply -f pod-restart-policy.yaml
+
+kubectl get pods 
+
+# Kill our apps in both our pods and see how the container restart policy reacts
+kubectl exec -it hello-world-never-pod -- /usr/bin/killall hello-app
+kubectl get pods
+kubectl describe pod hello-world-never-pod
+
+kubectl exec -it hello-world-onfailure-pod -- /usr/bin/killall hello-app
+kubectl get pods 
+
+# Kill our app again in onfailure-pod.
+kubectl exec -it hello-world-onfailure-pod -- /usr/bin/killall hello-app
+kubectl get pods 
+kubectl describe pod hello-world-onfailure-pod 
+
+# The pod should be running, after the Backoff timer expires.
+kubectl get pods 
+
+kubectl delete pod hello-world-never-pod
+kubectl delete pod hello-world-onfailure-pod
