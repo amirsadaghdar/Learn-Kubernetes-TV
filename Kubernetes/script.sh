@@ -556,3 +556,54 @@ kubectl get pods
 
 kubectl delete pod hello-world-never-pod
 kubectl delete pod hello-world-onfailure-pod
+
+#################
+### Video 009 ###
+#################
+
+# Liveness and Readiness probes.
+kubectl get events --watch &
+
+# Run a deployment with both a liveness probe and a readiness probe
+cat container-probes.yaml
+kubectl apply -f container-probes.yaml
+
+fg
+ctrl+c
+
+# Container is not ready 0/1 and it's Restarts are increasing.
+kubectl get pods
+
+# Investigate the issue.
+kubectl describe pods
+
+# Change the probes to 8080 and redeploy the pod.
+vi container-probes.yaml
+kubectl apply -f container-probes.yaml
+
+#Confirm our probes are pointing to the correct container port now, which is 8080.
+kubectl describe pods
+
+# Check our status.
+kubectl get pods 
+
+kubectl delete deployment hello-world
+
+# Startup probes.
+kubectl get events --watch &
+
+kubectl apply -f container-probes-startup.yaml
+
+# Pod is restarting.
+kubectl get pods
+
+#Change the startup probe from 8081 to 8080
+kubectl apply -f container-probes-startup.yaml
+
+#Our pod should be up and Ready now.
+kubectl get pods
+
+fg
+ctrl+c
+
+kubectl delete -f container-probes-startup.yaml
