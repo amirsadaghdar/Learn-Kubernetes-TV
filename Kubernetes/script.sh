@@ -581,7 +581,7 @@ kubectl describe pods
 vi container-probes.yaml
 kubectl apply -f container-probes.yaml
 
-#Confirm our probes are pointing to the correct container port now, which is 8080.
+# Probes are pointing to the correct container port.
 kubectl describe pods
 
 # Check our status.
@@ -589,7 +589,7 @@ kubectl get pods
 
 kubectl delete deployment hello-world
 
-# Startup probes.
+# Work with startup probes.
 kubectl get events --watch &
 
 kubectl apply -f container-probes-startup.yaml

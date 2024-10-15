@@ -1,6 +1,6 @@
-I have a YouTube channel called learn Kubernetes tv.
+I have a YouTube channel called Learn Kubernetes tv. 
 I am running hands-on sessions on Kubernetes running on AWS.
-Could you please write the script this video which will cover the code below?
+Could you please write the script for this video covering the code below?
 
 Video 001: Setting Up Kubernetes on AWS with eksctl
 Pre-requisites: AWS CLI, eksctl, and kubectl installation.
