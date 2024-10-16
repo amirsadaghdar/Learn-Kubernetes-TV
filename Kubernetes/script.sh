@@ -405,12 +405,16 @@ kubectl scale deployment hello-world --replicas=1
 kubectl get pods -A
 
 # Run a command inside our container.
+kubectl exec --help
+kubectl exec mypod -- date
 kubectl -v 6 exec -it hello-world-7ccb7779c9-fhm6k -- /bin/sh
 ps
 exit
 
 # Review the process on the node that runs the pod.
 kubectl get pods -o wide
+
+# Log into a node via ssm
 ps -aux | grep hello-app
 exit
 
@@ -437,20 +441,22 @@ ctrl+c
 kubectl run hello-world --image=gcr.io/google-samples/hello-app:2.0 --dry-run=client -o yaml --port=8080
 
 # Log into a node via ssm
+sudo su -
+systemctl status kubelet
 
-# Find the static pod path:
-sudo cat /var/lib/kubelet/config.yaml
+# Find the static pod path.
+sudo cat /etc/kubernetes/kubelet/kubelet-config.json
+sudo vi /etc/kubernetes/kubelet/kubelet-config.json
+
+# Add the static pod path details.
+"staticPodPath": "/etc/kubernetes/manifests",
 
 # Create a Pod manifest in the staticPodPath.
 sudo vi /etc/kubernetes/manifests/mypod.yaml
 ls /etc/kubernetes/manifests
 
-# List all the pods. The pods name is podname + node name
-kubectl get pods -o wide
-
-# Deleting a static pod only delete the mirror pod not the actual pod.
-kubectl delete pod hello-world-c1-node1
-kubectl get pods 
+# Get the pod detials running on the node.
+ps aux | grep -i 'hello-world'
 
 # Remove the static pod manifest on the node
 sudo rm /etc/kubernetes/manifests/mypod.yaml
