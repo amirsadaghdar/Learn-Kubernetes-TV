@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: hello-world-pod
+  name: hello-app
 spec:
+  restartPolicy: Always  # Place it here at the pod level
   containers:
-  - name: hello-world
-    image: gcr.io/google-samples/hello-app:1.0
-    ports:
-    - containerPort: 80
+    - name: hello-container
+      image: alpine:latest
+      command: ["sh", "-c", "while true; do echo 'Hello, World!'; sleep 5; done"]

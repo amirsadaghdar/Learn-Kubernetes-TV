@@ -518,6 +518,7 @@ kubectl get events --watch &
 
 # Create a pod.
 kubectl apply -f pod.yaml
+kubectl get pod
 
 # Use killall to kill the hello-app process inside our container
 kubectl exec -it hello-world-pod -- /bin/sh
