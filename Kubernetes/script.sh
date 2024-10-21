@@ -45,8 +45,8 @@ cat ~/.kube/config
 kubectl config current-context
 kubectl config get-contexts
 kubectl config view
-kubectl config use-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-temp-03
-kubectl config delete-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-temp-03
+kubectl config use-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-temp-08
+kubectl config delete-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-temp-08
 
 # Get all the pods.
 kubectl get pod -A
@@ -516,16 +516,12 @@ kubectl delete -f init-containers.yaml
 # Start  kubectl get events.
 kubectl get events --watch &
 
-# Create a pod.
+# Create a pod schedule on the node group.
 kubectl apply -f pod.yaml
 kubectl get pod
 
-# Use killall to kill the hello-app process inside our container
-kubectl exec -it hello-world-pod -- /bin/sh
-ps
-exit
-
-kubectl exec -it hello-world-pod -- /usr/bin/killall hello-app
+# Identify the node that's running the pod and restart the EC2 instance.
+kubectl get pod -o wide
 
 # The restart count increased by 1 after the container needed to be restarted.
 kubectl get pods
