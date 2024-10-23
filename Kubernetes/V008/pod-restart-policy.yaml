@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: hello-world
-    image: gcr.io/google-samples/hello-app:1.0
+    image: nginx
   restartPolicy: OnFailure
 ---
 apiVersion: v1
@@ -15,5 +15,5 @@ metadata:
 spec:
   containers:
   - name: hello-world
-    image: gcr.io/google-samples/hello-app:1.0
+    image: nginx
   restartPolicy: Never

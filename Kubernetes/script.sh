@@ -539,19 +539,16 @@ kubectl explain pods.spec.restartPolicy
 cat  pod-restart-policy.yaml
 kubectl apply -f pod-restart-policy.yaml
 
-kubectl get pods 
+# Identify the node that's running the pod and restart the EC2 instance.
+kubectl get pods -o wide
 
-# Kill our apps in both our pods and see how the container restart policy reacts
-kubectl exec -it hello-world-never-pod -- /usr/bin/killall hello-app
-kubectl get pods
+# Kill both  pods and see how the container restart policy reacts
+kubectl get pods -o wide
 kubectl describe pod hello-world-never-pod
-
-kubectl exec -it hello-world-onfailure-pod -- /usr/bin/killall hello-app
-kubectl get pods 
+kubectl describe pod hello-world-onfailure-pod 
 
 # Kill our app again in onfailure-pod.
-kubectl exec -it hello-world-onfailure-pod -- /usr/bin/killall hello-app
-kubectl get pods 
+kubectl get pods -o wide
 kubectl describe pod hello-world-onfailure-pod 
 
 # The pod should be running, after the Backoff timer expires.
