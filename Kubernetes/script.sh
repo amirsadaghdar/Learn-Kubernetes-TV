@@ -424,16 +424,9 @@ kubectl port-forward hello-world-58fc685665-xl659 8080:8080 &
 # Kubectl port-forward will send the traffic through the API server to the Pod
 curl http://localhost:8080
 
-# Kill our port forward session.
-fg
-ctrl+c
-
+# Delete the deployment.
 kubectl delete deployment hello-world
 kubectl delete pod hello-world-pod
-
-# Kill off the kubectl get events
-fg
-ctrl+c
 
 # Static pods
 # Create a pod manifest.
@@ -490,10 +483,7 @@ exit
 kubectl port-forward multicontainer-pod 8080:80 &
 curl http://localhost:8080
 
-# Kill our port-forward.
-fg
-ctrl+c
-
+# Delete the deployment.
 kubectl delete pod multicontainer-pod
 
 # Init container.
@@ -516,6 +506,7 @@ kubectl delete -f init-containers.yaml
 # Start  kubectl get events.
 kubectl get events --watch &
 
+# Create a node group and delete the fargate profile.
 # Create a pod schedule on the node group.
 kubectl apply -f pod.yaml
 kubectl get pod
@@ -528,9 +519,6 @@ kubectl get pods
 kubectl describe pod hello-world-pod
 
 kubectl delete pod hello-world-pod
-
-fg
-ctrl+c
 
 # Explore pod restartPolicy
 kubectl explain pods.spec.restartPolicy
@@ -568,9 +556,6 @@ kubectl get events --watch &
 cat container-probes.yaml
 kubectl apply -f container-probes.yaml
 
-fg
-ctrl+c
-
 # Container is not ready 0/1 and it's Restarts are increasing.
 kubectl get pods
 
@@ -592,10 +577,12 @@ kubectl delete deployment hello-world
 # Work with startup probes.
 kubectl get events --watch &
 
+cat container-probes-startup.yaml
 kubectl apply -f container-probes-startup.yaml
 
 # Pod is restarting.
 kubectl get pods
+kubectl describe pods
 
 #Change the startup probe from 8081 to 8080
 kubectl apply -f container-probes-startup.yaml
@@ -603,7 +590,5 @@ kubectl apply -f container-probes-startup.yaml
 #Our pod should be up and Ready now.
 kubectl get pods
 
-fg
-ctrl+c
-
+# Delete the deployment.
 kubectl delete -f container-probes-startup.yaml
