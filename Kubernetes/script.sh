@@ -592,3 +592,89 @@ kubectl get pods
 
 # Delete the deployment.
 kubectl delete -f container-probes-startup.yaml
+
+
+#################
+### Video 010 ###
+#################
+
+# Examining System Pods and their Controllers
+kubectl get all --namespace kube-system
+kubectl get pod --namespace kube-system
+
+# Look into codedns deployment.
+kubectl get deployments coredns --namespace kube-system
+kubectl describe deployments coredns --namespace kube-system
+kubectl get pods --selector=k8s-app=kube-dns --namespace kube-system
+kubectl describe pod coredns-5fb59c9c7b-pwf7l --namespace kube-system
+kubectl exec -it coredns-5fb59c9c7b-pwf7l --namespace kube-system -- cat /etc/coredns/Corefile
+
+# Daemonset Pods run on every node in the cluster by default, as new nodes are added these will be deployed to those nodes.
+kubectl get daemonset --namespace kube-system
+kubectl describe daemonset aws-node --namespace kube-system
+kubectl get pods --selector=k8s-app=aws-node --namespace kube-system
+kubectl describe pod aws-node-9kqh9 --namespace kube-system
+kubectl get pod aws-node-9kqh9 --namespace kube-system -o jsonpath='{.spec.containers[*].name}'
+kubectl exec -it aws-node-9kqh9 --namespace kube-system -- ls
+
+kubectl describe daemonset kube-proxy --namespace kube-system
+kubectl get pods --selector=k8s-app=kube-proxy --namespace kube-system
+kubectl describe pod kube-proxy-9dwk5 --namespace kube-system
+kubectl get pod kube-proxy-9dwk5 --namespace kube-system -o jsonpath='{.spec.containers[*].name}'
+kubectl exec --namespace kube-system -it kube-proxy-9dwk5 -- ls
+
+kubectl get nodes
+
+#################
+### Video 011 ###
+#################
+
+# Creating a Deployment Imperatively, with kubectl create
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0
+kubectl scale deployment hello-world --replicas=5
+
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0 --replicas=5
+
+kubectl get deployment 
+
+# Remove our resources
+kubectl delete deployment hello-world
+
+# Creat2 a deployment with a service declaratively
+kubectl apply -f deployment.yaml
+kubectl get deployments hello-world
+
+# Replicaset has the responsibility of keeping and maintaining the desired state of our application
+kubectl get replicasets
+kubectl get pods
+kubectl describe pods | head -n 15
+kubectl describe deployment
+
+# Remove our resources
+kubectl delete deployment hello-world
+kubectl delete service hello-world
+
+# Deploy a Deployment which creates a ReplicaSet
+kubectl apply -f deployment.yaml
+kubectl get replicaset
+
+# Let's look at the selector and the labels in the pod template
+kubectl describe replicaset hello-world
+
+# Let's delete this deployment which will delete the replicaset
+kubectl delete deployment hello-world
+kubectl get replicaset
+
+# Deploy a ReplicaSet with matchExpressions
+kubectl apply -f deployment-me.yaml
+
+# Check on the status of our ReplicaSet
+kubectl get replicaset
+
+# Look at the Selector and the labels in the pod template
+kubectl describe replicaset hello-world
+
+# Deleting a Pod in a ReplicaSet, application will self-heal itself
+kubectl get pods
+kubectl delete pods hello-world-[tab][tab]
+kubectl get pods
