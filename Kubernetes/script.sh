@@ -584,7 +584,7 @@ kubectl apply -f container-probes-startup.yaml
 kubectl get pods
 kubectl describe pods
 
-#Change the startup probe from 8081 to 8080
+#Change the startup probe from 8081 to 8080.
 kubectl apply -f container-probes-startup.yaml
 
 #Our pod should be up and Ready now.
@@ -598,7 +598,7 @@ kubectl delete -f container-probes-startup.yaml
 ### Video 010 ###
 #################
 
-# Examining System Pods and their Controllers
+# Examining System Pods and their Controllers.
 kubectl get all --namespace kube-system
 kubectl get pod --namespace kube-system
 
@@ -629,7 +629,7 @@ kubectl get nodes
 ### Video 011 ###
 #################
 
-# Creating a Deployment Imperatively, with kubectl create
+# Creating a Deployment Imperatively, with kubectl create.
 kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0
 kubectl scale deployment hello-world --replicas=5
 
@@ -637,44 +637,70 @@ kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.
 
 kubectl get deployment 
 
-# Remove our resources
+# Remove our resources.
 kubectl delete deployment hello-world
 
-# Creat2 a deployment with a service declaratively
+# Creat2 a deployment with a service declaratively.
 kubectl apply -f deployment.yaml
 kubectl get deployments hello-world
 
-# Replicaset has the responsibility of keeping and maintaining the desired state of our application
+# Replicaset has the responsibility of keeping and maintaining the desired state of our application.
 kubectl get replicasets
 kubectl get pods
-kubectl describe pods | head -n 15
+kubectl describe pods
 kubectl describe deployment
+kubectl set image deployment/hello-world hello-world=gcr.io/google-samples/hello-app:2.0
+kubectl rollout restart deployment/hello-world
 
-# Remove our resources
+# Rollback the update.
+kubectl rollout undo deployment/hello-world
+kubectl describe deployment hello-world
+kubectl rollout history deployment/hello-world
+kubectl rollout undo deployment/hello-world --to-revision=1
+
+# Remove our resources.
 kubectl delete deployment hello-world
 kubectl delete service hello-world
 
-# Deploy a Deployment which creates a ReplicaSet
+# Deploy a Deployment which creates a ReplicaSet.
 kubectl apply -f deployment.yaml
 kubectl get replicaset
 
-# Let's look at the selector and the labels in the pod template
+# Let's look at the selector and the labels in the pod template - Match Label.
 kubectl describe replicaset hello-world
 
-# Let's delete this deployment which will delete the replicaset
+# Let's delete this deployment which will delete the replicaset.
 kubectl delete deployment hello-world
 kubectl get replicaset
 
-# Deploy a ReplicaSet with matchExpressions
+# Deploy a ReplicaSet with matchExpressions.
 kubectl apply -f deployment-me.yaml
 
-# Check on the status of our ReplicaSet
+# Check on the status of our ReplicaSet.
 kubectl get replicaset
 
-# Look at the Selector and the labels in the pod template
+# Look at the Selector and the labels in the pod template - Match Expression.
 kubectl describe replicaset hello-world
 
 # Deleting a Pod in a ReplicaSet, application will self-heal itself
 kubectl get pods
-kubectl delete pods hello-world-[tab][tab]
+kubectl delete pods hello-world-64f9bb65b8-289cs
 kubectl get pods
+
+#################
+### Video 012 ###
+#################
+
+# Isolating a Pod from a ReplicaSet.
+kubectl get pods --show-labels
+
+# Edit the label on one of the Pods in the ReplicaSet, the replicaset controller will create a new pod.
+kubectl label pod hello-world-[tab][tab] app=DEBUG --overwrite
+kubectl get pods --show-labels
+
+# Relabel that pod to bring it back into the scope of the replicaset.
+kubectl label pod hello-world-[tab][tab] app=hello-world-pod-me --overwrite
+
+# One Pod will be terminated, since it will maintain the desired number of replicas at 5.
+kubectl get pods --show-labels
+kubectl describe ReplicaSets
