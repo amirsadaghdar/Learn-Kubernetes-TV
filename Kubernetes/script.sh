@@ -691,16 +691,34 @@ kubectl get pods
 ### Video 012 ###
 #################
 
+kubectl apply -f deployment.yaml
+kubectl get deployments hello-world 
+kubectl describe deployments hello-world
+
 # Isolating a Pod from a ReplicaSet.
 kubectl get pods --show-labels
 
 # Edit the label on one of the Pods in the ReplicaSet, the replicaset controller will create a new pod.
-kubectl label pod hello-world-[tab][tab] app=DEBUG --overwrite
+kubectl label pod hello-world-64f9bb65b8-k684n app=DEBUG --overwrite
 kubectl get pods --show-labels
 
 # Relabel that pod to bring it back into the scope of the replicaset.
-kubectl label pod hello-world-[tab][tab] app=hello-world-pod-me --overwrite
+kubectl label pod hello-world-64f9bb65b8-k684n app=hello-world-pod-me --overwrite
 
 # One Pod will be terminated, since it will maintain the desired number of replicas at 5.
 kubectl get pods --show-labels
 kubectl describe ReplicaSets
+
+# Node failures in ReplicaSets. Shutdown a node.
+# Orphaned Pod goes Terminating and a new Pod will be deployed in the cluster.
+kubectl get nodes --watch
+kubectl get pods -o wide
+
+
+# Node group create a new node and leave the old node in disbaled state.
+kubectl get nodes
+kubectl get pods -o wide
+
+# let's clean up the deployment and service.
+kubectl delete deployment hello-world
+kubectl delete service hello-world
