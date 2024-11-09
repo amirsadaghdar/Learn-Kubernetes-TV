@@ -722,3 +722,213 @@ kubectl get pods -o wide
 # let's clean up the deployment and service.
 kubectl delete deployment hello-world
 kubectl delete service hello-world
+
+
+#################
+### Video 013 ###
+#################
+
+# Updating a Deployment and checking our rollout status
+kubectl apply -f deployment.yaml
+kubectl get deployment hello-world
+kubectl describe deployment hello-world
+
+# Update the deployment.
+kubectl apply -f deployment.v2.yaml
+
+# Check the status of that rollout.
+kubectl rollout status deployment hello-world
+
+# Expect a return code of 0 from kubectl rollout status. That's how we know we're in the Complete status.
+echo $?
+
+
+#Let's walk through the description of the deployment...
+#Check out Replicas, Conditions and Events OldReplicaSet (will only be populated during a rollout) and NewReplicaSet
+#Conditions (more information about our objects state):
+#     Available      True    MinimumReplicasAvailable
+#     Progressing    True    NewReplicaSetAvailable (when true, deployment is still progressing or complete)
+kubectl describe deployments hello-world
+
+# Both replicasets remain. That will become very useful when we use a rollback.
+kubectl get replicaset
+kubectl get replicaset -o wide
+
+# The NewReplicaSet detials.
+kubectl describe replicaset hello-world-5b4bddcd4
+
+# The OldReplicaSet details.
+kubectl describe replicaset hello-world-58fc685665
+
+# Clean-up the deployment.
+kubectl delete deployment hello-world
+kubectl delete service hello-world
+
+#################
+### Video 014 ###
+#################
+
+# Create our v1 deployment, then update it to v2
+kubectl apply -f deployment.yaml
+kubectl apply -f deployment.v2.yaml
+
+# The new image wasn’t available, the ReplicaSet doesn't go below maxUnavailable.
+# progressDeadlineSeconds set to 10 to get to failure state quickly.
+kubectl apply -f deployment.broken.yaml
+
+# After progressDeadlineSeconds which we set to 10 seconds the rollout stop (defaults to 10 minutes).
+kubectl rollout status deployment hello-world
+
+# Expect a return code of 1 from kubectl rollout status...that's how we know we're in the failed status.
+echo $?
+
+# Check out Pods, ImagePullBackoff/ErrImagePull.
+# Deployment stopped the rollout 5 and 8 are online, let's look at why.
+kubectl get pods
+
+# maxUnavailable = 25%. So only two Pods in the ORIGINAL ReplicaSet are offline and 8 are online.
+# maxSurge = 25%. So we have 13 total Pods, or 25% in addition to Desired number.
+# Look at Replicas and OldReplicaSet 8/8 and NewReplicaSet 5/5.
+# Available      True    MinimumReplicasAvailable
+# Progressing    False   ProgressDeadlineExceeded
+kubectl describe deployments hello-world 
+
+# Check the rollout history.
+kubectl rollout history deployment hello-world
+
+# Check what revision you are on now.
+kubectl describe deployments hello-world | head
+
+# Look at the changes applied in each revision to see the new pod templates.
+kubectl rollout history deployment hello-world --revision=2
+kubectl rollout history deployment hello-world --revision=3
+
+# Rollout to revision 2, which is our v2 container.
+kubectl rollout undo deployment hello-world --to-revision=2
+kubectl rollout status deployment hello-world
+echo $?
+
+kubectl get pods
+
+# Delete this Deployment and Service.
+kubectl delete deployment hello-world
+kubectl delete service hello-world
+
+#################
+### Video 015 ###
+#################
+
+###Examine deployment.probes-1.yaml, review strategy settings, revisionhistory, and readinessProbe settings###
+
+####QUICKLY run these two commands or as one block.####
+#Demo 3 - Controlling the rate and update strategy of a Deployment update.
+#Let's deploy a Deployment with Readiness Probes
+kubectl apply -f deployment.probes-1.yaml --record
+
+
+#Available is still 0 because of our Readiness Probe's initialDelaySeconds is 10 seconds.
+#Also, look there's a new annotaion for our change-cause
+#And check the Conditions, 
+#   Progressing   True    NewReplicaSetCreated or ReplicaSetUpdated - depending on the state.
+#   Available     False   MinimumReplicasUnavailable
+kubectl describe deployment hello-world
+####################################################
+
+#Check again, Replicas and Conditions, all Pods should be online and ready.
+#   Available      True    MinimumReplicasAvailable
+#   Progressing    True    NewReplicaSetAvailable
+kubectl describe deployment hello-world
+
+
+#Let's update from v1 to v2 with Readiness Probes Controlling the rollout, and record our rollout
+diff deployment.probes-1.yaml deployment.probes-2.yaml
+kubectl apply -f deployment.probes-2.yaml --record
+
+
+#Lots of pods, most are not ready yet, but progressing...how do we know it's progressing?
+kubectl get replicaset
+
+
+#Check again, Replicas and Conditions. 
+#Progressing is now ReplicaSetUpdated, will change to NewReplicaSetAvailable when it's Ready
+#NewReplicaSet is THIS current RS, OldReplicaSet is populated during a Rollout, otherwise it's <None>
+#We used the update strategy settings of max unavailable and max surge to slow this rollout down.
+#This update takes about a minute to rollout
+kubectl describe deployment hello-world
+
+
+#Let's update again, but I'm not going to tell you what I changed, we're going to troubleshoot it together
+kubectl apply -f deployment.probes-3.yaml --record
+
+
+#We stall at 4 out of 20 replicas updated...let's look
+kubectl rollout status deployment hello-world
+
+
+#Let's check the status of the Deployment, Replicas and Conditions, 
+#22 total (20 original + 2 max surge)
+#18 available (20 original - 2 (10%) in the old RS)
+#4 Unavailable, (only 2 pods in the old RS are offline, 4 in the new RS are not READY)
+#  Available      True    MinimumReplicasAvailable
+#  Progressing    True    ReplicaSetUpdated 
+kubectl describe deployment hello-world
+
+
+#Let's look at our ReplicaSets, no Pods in the new RS hello-world-6f8784dd6 are READY, but 4 our deployed.
+#That RS with Desired 0 is from our V1 deployment, 18 is from our V2 deployment.
+kubectl get replicaset
+
+
+#Ready...that sounds familiar, let's check the deployment again
+#What keeps a pod from reporting ready? A Readiness Probe...see that Readiness Probe, wrong port ;)
+kubectl describe deployment hello-world
+ 
+
+#We can read the Deployment's rollout history, and see our CHANGE-CAUSE annotations
+kubectl rollout history deployment hello-world
+
+
+#Let's rollback to revision 2 to undo that change...
+kubectl rollout history deployment hello-world --revision=3
+kubectl rollout history deployment hello-world --revision=2
+kubectl rollout undo deployment hello-world --to-revision=2
+
+
+#And check out our deployment to see if we get 20 Ready replicas
+kubectl describe deployment | head
+kubectl get deployment
+
+#Let's clean up
+kubectl delete deployment hello-world
+kubectl delete service hello-world
+
+
+
+
+#Restarting a deployment. Create a fresh deployment so we have easier to read logs.
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0 --replicas=5
+
+
+#Check the status of the deployment
+kubectl get deployment
+
+
+#Check the status of the pods...take note of the pod template hash in the NAME and the AGE
+kubectl get pods 
+
+
+#Let's restart a deployment
+kubectl rollout restart deployment hello-world 
+
+
+#You get a new replicaset and the pods in the old replicaset are shutdown and the new replicaset are started up
+kubectl describe deployment hello-world
+
+
+#All new pods in the replicaset 
+kubectl get pods 
+
+
+#clean up from this demo
+kubectl delete deployment hello-world
+
