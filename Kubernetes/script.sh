@@ -818,29 +818,16 @@ kubectl delete service hello-world
 ### Video 015 ###
 #################
 
-###Examine deployment.probes-1.yaml, review strategy settings, revisionhistory, and readinessProbe settings###
-
-####QUICKLY run these two commands or as one block.####
-#Demo 3 - Controlling the rate and update strategy of a Deployment update.
-#Let's deploy a Deployment with Readiness Probes
+# Controlling the rate and update strategy of a Deployment update. Deploy a Deployment with Readiness Probes
 kubectl apply -f deployment.probes-1.yaml --record
 
-
-#Available is still 0 because of our Readiness Probe's initialDelaySeconds is 10 seconds.
-#Also, look there's a new annotaion for our change-cause
-#And check the Conditions, 
-#   Progressing   True    NewReplicaSetCreated or ReplicaSetUpdated - depending on the state.
-#   Available     False   MinimumReplicasUnavailable
-kubectl describe deployment hello-world
-####################################################
-
-#Check again, Replicas and Conditions, all Pods should be online and ready.
-#   Available      True    MinimumReplicasAvailable
-#   Progressing    True    NewReplicaSetAvailable
+# Available is still 0 because of our Readiness Probe's initialDelaySeconds is 10 seconds.
 kubectl describe deployment hello-world
 
+# Check again, Replicas and Conditions, all Pods should be online and ready.
+kubectl describe deployment hello-world
 
-#Let's update from v1 to v2 with Readiness Probes Controlling the rollout, and record our rollout
+# Let's update from v1 to v2 with Readiness Probes Controlling the rollout, and record our rollout
 diff deployment.probes-1.yaml deployment.probes-2.yaml
 kubectl apply -f deployment.probes-2.yaml --record
 
