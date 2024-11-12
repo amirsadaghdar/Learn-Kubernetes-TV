@@ -830,92 +830,66 @@ kubectl describe deployment hello-world
 # Let's update from v1 to v2 with Readiness Probes Controlling the rollout, and record our rollout
 diff deployment.probes-1.yaml deployment.probes-2.yaml
 kubectl apply -f deployment.probes-2.yaml --record
+kubectl describe deployment hello-world
 
-
-#Lots of pods, most are not ready yet, but progressing...how do we know it's progressing?
+# Lots of pods are created where most are not ready yet, but progressing.
 kubectl get replicaset
 
-
-#Check again, Replicas and Conditions. 
-#Progressing is now ReplicaSetUpdated, will change to NewReplicaSetAvailable when it's Ready
-#NewReplicaSet is THIS current RS, OldReplicaSet is populated during a Rollout, otherwise it's <None>
-#We used the update strategy settings of max unavailable and max surge to slow this rollout down.
-#This update takes about a minute to rollout
+# We use the update strategy settings of max unavailable and max surge to slow this rollout down.
 kubectl describe deployment hello-world
 
 
-#Let's update again, but I'm not going to tell you what I changed, we're going to troubleshoot it together
+# Let's update again, but I'm not going to tell you what I changed, we're going to troubleshoot it together
 kubectl apply -f deployment.probes-3.yaml --record
 
-
-#We stall at 4 out of 20 replicas updated...let's look
+# We stall at 4 out of 20 replicas updated.
 kubectl rollout status deployment hello-world
 
-
-#Let's check the status of the Deployment, Replicas and Conditions, 
-#22 total (20 original + 2 max surge)
-#18 available (20 original - 2 (10%) in the old RS)
-#4 Unavailable, (only 2 pods in the old RS are offline, 4 in the new RS are not READY)
-#  Available      True    MinimumReplicasAvailable
-#  Progressing    True    ReplicaSetUpdated 
+# Let's check the status of the Deployment, Replicas and Condition.
 kubectl describe deployment hello-world
 
-
-#Let's look at our ReplicaSets, no Pods in the new RS hello-world-6f8784dd6 are READY, but 4 our deployed.
-#That RS with Desired 0 is from our V1 deployment, 18 is from our V2 deployment.
+# Let's look at our ReplicaSets, no Pods in the new RepllicaSets.
+# That ReplicaSet with Desired 0 is from our V1 deployment, 18 is from our V2 deployment.
 kubectl get replicaset
 
-
-#Ready...that sounds familiar, let's check the deployment again
-#What keeps a pod from reporting ready? A Readiness Probe...see that Readiness Probe, wrong port ;)
+# A Readiness Probe keeps a pod from reporting ready
 kubectl describe deployment hello-world
  
-
-#We can read the Deployment's rollout history, and see our CHANGE-CAUSE annotations
+# We can read the Deployment's rollout history, and see our CHANGE-CAUSE annotations
 kubectl rollout history deployment hello-world
 
-
-#Let's rollback to revision 2 to undo that change...
+# Let's rollback to revision 2 to undo that change.
 kubectl rollout history deployment hello-world --revision=3
 kubectl rollout history deployment hello-world --revision=2
 kubectl rollout undo deployment hello-world --to-revision=2
 
-
-#And check out our deployment to see if we get 20 Ready replicas
-kubectl describe deployment | head
+# And check out our deployment to see if we get 20 Ready replicas
+kubectl describe deployment
 kubectl get deployment
 
-#Let's clean up
+# Let's clean up
 kubectl delete deployment hello-world
 kubectl delete service hello-world
 
-
-
-
-#Restarting a deployment. Create a fresh deployment so we have easier to read logs.
+# Restarting a deployment.
+Create a fresh deployment so we have easier to read logs.
 kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0 --replicas=5
 
-
-#Check the status of the deployment
+# Check the status of the deployment
 kubectl get deployment
 
-
-#Check the status of the pods...take note of the pod template hash in the NAME and the AGE
+# Check the status of the pods.
 kubectl get pods 
 
-
-#Let's restart a deployment
+# Let's restart a deployment
 kubectl rollout restart deployment hello-world 
 
-
-#You get a new replicaset and the pods in the old replicaset are shutdown and the new replicaset are started up
+# You get a new replicaset and the pods in the old replicaset are shutdown and the new replicaset are started up.
 kubectl describe deployment hello-world
 
-
-#All new pods in the replicaset 
+# All new pods in the replicaset 
 kubectl get pods 
 
-
-#clean up from this demo
+# Clean up the pods
 kubectl delete deployment hello-world
 
