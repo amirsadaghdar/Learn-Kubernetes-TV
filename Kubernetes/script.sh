@@ -893,3 +893,42 @@ kubectl get pods
 # Clean up the pods
 kubectl delete deployment hello-world
 
+
+#################
+### Video 016 ###
+#################
+
+# Create a deployment imperatively.
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0
+
+# Check out the status of our deployment.
+kubectl get deployment hello-world
+
+# Scale our deployment from 1 to 10 replicas
+kubectl scale deployment hello-world --replicas=10
+
+# Check out the status of our deployment.
+kubectl get deployment hello-world
+
+# Delete the deployment.
+kubectl delete deployment hello-world
+
+# Deploy our Deployment via yaml.
+kubectl apply -f deployment.yaml 
+
+# Check the status of our deployment.
+kubectl get deployment hello-world
+
+# Apply a modified yaml file scaling from 10 to 20 replicas.
+diff deployment.yaml deployment.20replicas.yaml
+kubectl apply -f deployment.20replicas.yaml
+
+# Check the status of the deployment
+kubectl get deployment hello-world
+
+# Check out the events where the replicaset is scaled to 20
+kubectl describe deployment 
+
+# Clean-up.
+kubectl delete deployment hello-world
+kubectl delete service hello-world
