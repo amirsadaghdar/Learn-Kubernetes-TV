@@ -932,3 +932,94 @@ kubectl describe deployment
 # Clean-up.
 kubectl delete deployment hello-world
 kubectl delete service hello-world
+
+#################
+### Video 017 ###
+#################
+
+# Creating a DaemonSet on All Nodes
+kubectl get nodes
+kubectl get daemonsets --namespace kube-system kube-proxy
+
+# Create a DaemonSet with Pods on each node in our cluster.
+kubectl apply -f DaemonSet.yaml
+
+# We will get 2 pods on the 2 worker nodes.
+kubectl get daemonsets
+kubectl get daemonsets -o wide
+kubectl get pods -o wide
+
+# Review labels, Desired/Current Nodes Scheduled. Pod Status and Template and Events.
+kubectl describe daemonsets hello-world
+
+# Each Pods is created with our label, app=hello-world, controller-revision-hash and a pod-template-generation
+kubectl get pods --show-labels
+
+# Let's change the label to one of our Pods.
+MYPOD=$(kubectl get pods -l app=hello-world-app | grep hello-world | head -n 1 | awk {'print $1'})
+echo $MYPOD
+kubectl label pods $MYPOD app=not-hello-world --overwrite
+
+# We'll get a new Pod from the DaemonSet Controller.
+kubectl get pods --show-labels
+
+# Let's clean up this DaemonSet
+kubectl delete daemonsets hello-world-ds
+kubectl delete pods $MYPOD
+
+# Creating a DaemonSet on a Subset of Nodes
+# Let's create a DaemonSet with a defined nodeSelector
+kubectl apply -f DaemonSetWithNodeSelector.yaml
+
+#No pods created because we don't have any nodes with the appropriate label
+kubectl get daemonsets
+
+#We need a Node that satisfies the Node Selector. Let's label our nodes.
+kubectl get nodes
+kubectl describe node ip-192-168-104-199.eu-west-1.compute.internal
+kubectl label node ip-192-168-104-199.eu-west-1.compute.internal node=hello-world-ns
+
+# Let's see if a Pod gets created.
+kubectl get daemonsets
+kubectl get daemonsets -o wide
+kubectl get pods -o wide
+
+# Let's remove the label.
+kubectl label node ip-192-168-104-199.eu-west-1.compute.internal node-
+
+# It's going to terminate the Pod.
+kubectl describe daemonsets hello-world-ds
+
+# Clean up our demo
+kubectl delete daemonsets hello-world-ds
+
+# Updating a DaemonSet.
+# Deploy our v1 DaemonSet.
+kubectl apply -f DaemonSet.yaml
+
+# Check out our image version, 1.0
+kubectl get daemonsets
+kubectl describe daemonsets hello-world
+
+# Examine the update stategy. Defaults is rollingUpdate and maxUnavailable 1
+kubectl get DaemonSet hello-world-ds -o yaml
+
+# Update the container image from 1.0 to 2.0 and apply the config
+diff DaemonSet.yaml DaemonSet-v2.yaml
+kubectl apply -f DaemonSet-v2.yaml
+
+# Check on the status of our rollout, slightly slower than a deployment due to maxUnavailable.
+kubectl rollout status daemonsets hello-world-ds
+
+# TheDaemonSet Container Image is now 2.0.
+kubectl describe daemonsets
+
+# The new controller-revision-hash and also an updated pod-template-generation
+kubectl get pods --show-labels
+
+# Vlean up the daemonset.
+kubectl delete daemonsets hello-world-ds
+
+#################
+### Video 018 ###
+#################
