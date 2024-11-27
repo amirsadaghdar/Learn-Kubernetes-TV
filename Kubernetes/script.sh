@@ -1023,3 +1023,90 @@ kubectl delete daemonsets hello-world-ds
 #################
 ### Video 018 ###
 #################
+
+# Executing tasks with Jobs.
+# The restartPolicy must be OnFailure or Never.
+kubectl apply -f job.yaml
+
+# Follow job status with a watch
+kubectl get job --watch
+
+# Get the list of Pods, status is Completed and Ready is 0/1
+kubectl get pods
+
+# Get some more details about the job.
+kubectl describe job hello-world-job
+
+#Get the logs from stdout from the Job Pod
+kubectl get pods -l job-name=hello-world-job 
+kubectl logs hello-world-job-sbjps
+
+# The Job is completed, but it still exists as a resource. We can go ahead and delete ths job.
+kubectl delete job hello-world-job
+
+# This will also delete it's Pods
+kubectl get pods
+
+# BackoffLimit allows us to retry running failed job.
+# We'll use Never for backoffLimit so our pods aren't deleted after backoffLimit is reached.
+kubectl apply -f job-failure-OnFailure.yaml
+
+# Review the pods, enters a backoffloop after 2 crashes.
+kubectl get pods --watch
+
+# The pods aren't deleted so we can troubleshoot here if needed.
+kubectl get pods
+
+# The job won't have any completions and it doesn't get deleted.
+kubectl get jobs 
+
+# Let's review what the job did.
+kubectl describe jobs
+
+# Clean up this job
+kubectl delete jobs hello-world-job-fail
+kubectl get pods
+
+# Defining a Parallel Job
+kubectl apply -f ParallelJob.yaml
+
+# 10 Pods will run in parallel up until 50 completions.
+kubectl get pods
+
+# We can 'watch' the Statuses with watch.
+watch 'kubectl describe job | head -n 15'
+
+#We'll get to 50 completions very quickly
+kubectl get jobs
+
+# Let's clean up.
+kubectl delete job hello-world-job-parallel
+
+# Scheduling tasks with CronJobs
+kubectl apply -f CronJob.yaml
+
+# Get the job and it's schedule
+kubectl get cronjobs
+
+# Look closer at the job.
+kubectl describe cronjobs
+
+# Get a overview again...
+kubectl get cronjobs
+
+# The pods will stick around, in the event we need their logs or other inforamtion.
+kubectl get pods --watch
+
+# The pods will stick around for successfulJobsHistoryLimit, which defaults to three.
+kubectl get cronjobs -o yaml
+
+# Clean up the job.
+kubectl delete cronjob hello-world-cron
+
+# Deletes all the Pods too.
+kubectl get pods
+
+#################
+### Video 019 ###
+#################
+
