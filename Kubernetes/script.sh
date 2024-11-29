@@ -1110,3 +1110,150 @@ kubectl get pods
 ### Video 019 ###
 #################
 
+# Setup NFS in AWS by creating an EFS volume. Make sure to adjust the secuirty groups on the EFS resource to allow access from the worker nodes.
+# Login to each one of the workder nodes to mount the EFS file system.
+sudo yum install -y nfs-utils
+sudo mkdir /mnt/efs
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0d224492c2b75a83d.efs.eu-west-1.amazonaws.com:/ /mnt/efs
+df -h
+sudo vi /etc/fstab
+fs-0d224492c2b75a83d.efs.eu-west-1.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0
+cd /mnt/efs
+
+# Static Provisioning Persistent Volumes
+#Create a PV with the read/write many and retain as the reclaim policy
+kubectl apply -f efs.pv.yaml
+kubectl get pv
+
+# Review the created resources, Status, Access Mode and Reclaim policy is set to Reclaim rather than Delete. 
+kubectl get PersistentVolume pv-efs-data
+kubectl describe PersistentVolume pv-efs-data
+
+# Create a PVC on the PV
+kubectl apply -f efs.pvc.yaml
+
+# Check the status, now it's Bound due to the PVC on the PV.
+kubectl get PersistentVolume
+kubectl get PersistentVolume pv-efs-data
+
+# Check the status, Bound.
+# We defined the PVC it statically provisioned the PV but it's not mounted yet.
+kubectl get PersistentVolumeClaim
+kubectl get PersistentVolumeClaim pvc-efs-data
+kubectl describe PersistentVolumeClaim pvc-efs-data
+
+# Create some content on our EFS.
+sudo bash -c 'echo "Hello from our EFS mount!!!" > /mnt/efs/pod/demo.html'
+more /mnt/efs/pod/demo.html
+
+# Let's create a Pod (in a Deployment and add a Service) with a PVC on pvc-nfs-data
+kubectl apply -f efs.nginx.yaml
+kubectl get service nginx-efs-service
+SERVICEIP=$(kubectl get service | grep nginx-efs-service | awk '{ print $3 }')
+
+# Check to see if our pods are Running before proceeding
+kubectl get pods
+
+# Let's access that application to see our application data...
+curl http://$SERVICEIP/web-app/pod/demo.html
+curl http://10.100.194.10/web-app/pod/demo.html
+curl http://192.168.44.229/web-app/pod/demo.html
+
+# Check the "Mounted By" output for which Pod(s) are accessing this storage
+kubectl describe PersistentVolumeClaim pvc-efs-data
+ 
+
+# If we go 'inside' the Pod/Container, we can find out where the PV is mounted
+kubectl exec -it nginx-efs-deployment-b4955796b-c58kx -- /bin/bash
+ls /usr/share/nginx/html/web-app/pod
+more /usr/share/nginx/html/web-app/pod/demo.html
+exit
+
+# Identify the node the pod is running on.
+kubectl get pods -o wide
+
+# Log into that node and look at the mounted volumes.
+# kubelets makes the device/mount available.
+mount | grep nfs
+exit
+
+
+# Delete the pod and see if we still have access to our data in our PV.
+kubectl get pods
+kubectl delete pods nginx-efs-deployment-b4955796b-c58kx
+
+# We get a new pod, but is our app data still there.
+kubectl get pods
+
+#Let's access that application to see our application data...yes!
+curl http://$SERVICEIP/web-app/demo.html
+
+# Controlling PV access with Access Modes and persistentVolumeReclaimPolicy.
+# scale up the deployment to 4 replicas.
+kubectl scale deployment nginx-efs-deployment --replicas=4
+
+# All 4 pods are attached to the PVC.
+#Our AccessMode for this PV and PVC is RWX ReadWriteMany.
+kubectl describe PersistentVolumeClaim
+
+# Now when we access our application we're getting load balanced across all the pods hitting the same PV data
+curl http://$SERVICEIP/web-app/demo.html
+
+# Let's delete our deployment
+kubectl delete deployment nginx-nfs-deployment
+
+# The status of the PV is still bound.
+kubectl get PersistentVolume 
+
+# Because the PVC still exists.
+kubectl get PersistentVolumeClaim
+
+# We can re-use the same PVC and PV from a Pod definition. Because we didn't delete the PVC.
+kubectl apply -f efs.nginx.yaml
+kubectl get pods 
+
+
+#But if we delete the deployment AND the PersistentVolumeClaim
+kubectl delete deployment nginx-efs-deployment
+kubectl delete PersistentVolumeClaim pvc-efs-data
+
+# The status of the PV is now Released, which means no one can claim this PV
+kubectl get PersistentVolume
+
+# But let's try to use it and see what happend, recreate the PVC for this PV. PVC cannot be recreated.
+kubectl apply -f efs.pvc.yaml
+
+# Then try to use the PVC/PV in a Pod definition
+kubectl apply -f efs.nginx.yaml
+kubectl get pods
+
+# The PVC Status is Pending because that PV is Released and our Reclaim Policy is Retain.
+kubectl get PersistentVolumeClaim
+kubectl get PersistentVolume
+
+
+# We need to delete the PV if we want to 'reuse' that exact PV and 're-create' the PV
+kubectl delete deployment nginx-efs-deployment
+kubectl delete pvc pvc-efs-data
+kubectl delete pv pv-efs-data
+
+
+# If we recreate the PV, PVC, and the pods. we'll be able to re-deploy. 
+# The clean up of the data is defined by the reclaim policy. (Delete will clean up for you, useful in dynamic provisioning scenarios)
+# But in this case, since it's EFS, we have to clean it up and remove the files
+# Nothing will prevent a user from getting this acess to this data, so it's imperitive to clean up. 
+kubectl apply -f efs.pv.yaml
+kubectl apply -f efs.pvc.yaml
+kubectl apply -f efs.nginx.yaml
+kubectl get pods 
+
+
+# Time to clean up for the next demo
+kubectl delete -f efs.nginx.yaml
+kubectl delete pvc pvc-efs-data
+kubectl delete pv pv-efs-data
+
+
+#################
+### Video 020 ###
+#################
