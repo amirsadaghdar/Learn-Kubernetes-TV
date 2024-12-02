@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-aws-standard-ssd
+  name: pvc-aws-managed
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: managed-standard-ssd
+  storageClassName: gp2-storage-class
   resources:
     requests:
       storage: 10Gi
@@ -13,7 +13,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-awsdisk-deployment-standard-ssd
+  name: nginx-awsdisk-deployment
 spec:  
   replicas: 1
   selector:
@@ -24,6 +24,10 @@ spec:
       labels:
         app: nginx
     spec:
+      volumes:
+      - name: webcontent
+        persistentVolumeClaim:
+          claimName: pvc-aws-managed
       containers:
       - name: nginx
         image: nginx
@@ -32,7 +36,3 @@ spec:
         volumeMounts:
         - name: webcontent
           mountPath: "/usr/share/nginx/html/web-app"
-      volumes:
-      - name: webcontent
-        persistentVolumeClaim:
-          claimName: pvc-aws-standard-ssd

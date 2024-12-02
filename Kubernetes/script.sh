@@ -1253,6 +1253,7 @@ kubectl delete pv pv-efs-data
 #################
 
 # StorageClasses and Dynamic Provisioning in the AWS
+# Install Amazon EBS CSI Driver add-on in the EKS cluster.
 # Check out the  list of available storage classes. Notice the Provisioner, Parameters and ReclaimPolicy.
 kubectl get StorageClass
 kubectl describe StorageClass gp2
