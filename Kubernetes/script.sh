@@ -1161,7 +1161,6 @@ curl http://192.168.44.229/web-app/pod/demo.html
 
 # Check the "Mounted By" output for which Pod(s) are accessing this storage
 kubectl describe PersistentVolumeClaim pvc-efs-data
- 
 
 # If we go 'inside' the Pod/Container, we can find out where the PV is mounted
 kubectl exec -it nginx-efs-deployment-b4955796b-c58kx -- /bin/bash
@@ -1176,7 +1175,6 @@ kubectl get pods -o wide
 # kubelets makes the device/mount available.
 mount | grep nfs
 exit
-
 
 # Delete the pod and see if we still have access to our data in our PV.
 kubectl get pods
@@ -1212,7 +1210,6 @@ kubectl get PersistentVolumeClaim
 kubectl apply -f efs.nginx.yaml
 kubectl get pods 
 
-
 #But if we delete the deployment AND the PersistentVolumeClaim
 kubectl delete deployment nginx-efs-deployment
 kubectl delete PersistentVolumeClaim pvc-efs-data
@@ -1231,12 +1228,10 @@ kubectl get pods
 kubectl get PersistentVolumeClaim
 kubectl get PersistentVolume
 
-
 # We need to delete the PV if we want to 'reuse' that exact PV and 're-create' the PV
 kubectl delete deployment nginx-efs-deployment
 kubectl delete pvc pvc-efs-data
 kubectl delete pv pv-efs-data
-
 
 # If we recreate the PV, PVC, and the pods. we'll be able to re-deploy. 
 # The clean up of the data is defined by the reclaim policy. (Delete will clean up for you, useful in dynamic provisioning scenarios)
@@ -1247,7 +1242,6 @@ kubectl apply -f efs.pvc.yaml
 kubectl apply -f efs.nginx.yaml
 kubectl get pods 
 
-
 # Time to clean up for the next demo
 kubectl delete -f efs.nginx.yaml
 kubectl delete pvc pvc-efs-data
@@ -1257,3 +1251,46 @@ kubectl delete pv pv-efs-data
 #################
 ### Video 020 ###
 #################
+
+# StorageClasses and Dynamic Provisioning in the AWS
+# Check out the  list of available storage classes. Notice the Provisioner, Parameters and ReclaimPolicy.
+kubectl get StorageClass
+kubectl describe StorageClass gp2
+
+# Create a Deployment of an nginx pod with a ReadWriteOnce disk, 
+# We create a PVC and a Deployment that creates Pods that use that PVC
+kubectl apply -f AWSDisk.yaml
+
+# Check out the Access Mode, Reclaim Policy, Status, Claim and StorageClass
+kubectl get PersistentVolume
+
+#Check out the Access Mode on the PersistentVolumeClaim, status is Bound and it's Volume is the PV dynamically provisioned
+kubectl get PersistentVolumeClaim
+
+# Check out single pod was created (the Status can take a second to transition to Running)
+kubectl get pods
+
+# Clean up the resources.
+kubectl delete deployment nginx-awsdisk-deployment
+kubectl delete PersistentVolumeClaim pvc-aws-managed
+
+# Defining a custom StorageClass in Azure
+kubectl apply -f CustomStorageClass.yaml
+
+# Get a list of the current StorageClasses kubectl get StorageClass.
+kubectl get StorageClass
+
+# Take a closer look at the SC, you can see the Reclaim Policy is Delete since we didn't set it in our StorageClass yaml.
+kubectl describe StorageClass gp2-storage-class
+
+# Use our new StorageClass
+kubectl apply -f AWSDiskCustomStorageClass.yaml
+
+# Take a closer look at our new Storage Class, Reclaim Policy Delete
+kubectl get PersistentVolumeClaim
+kubectl get PersistentVolume
+
+# Clean up the resources
+kubectl delete deployment nginx-awsdisk-deployment-standard-ssd
+kubectl delete PersistentVolumeClaim pvc-aws-standard-ssd
+kubectl delete StorageClass managed-standard-ssd
