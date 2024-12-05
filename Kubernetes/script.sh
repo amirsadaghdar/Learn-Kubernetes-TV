@@ -1295,3 +1295,47 @@ kubectl get PersistentVolume
 kubectl delete deployment nginx-awsdisk-deployment-standard-ssd
 kubectl delete PersistentVolumeClaim pvc-aws-standard-ssd
 kubectl delete StorageClass managed-standard-ssd
+
+#################
+### Video 021 ###
+#################
+
+# Passing Configuration into Containers using Environment Variables.
+# Create two deployments, one for a database system and the other our application.
+kubectl apply -f deployment-alpha.yaml
+sleep 5
+kubectl apply -f deployment-beta.yaml
+
+# Look at the services
+kubectl get service
+kubectl describe service hello-world-alpha
+
+# Get the name of one of our pods
+PODNAME=$(kubectl get pods | grep hello-world-alpha | awk '{print $1}' | head -n 1)
+echo $PODNAME
+
+# Inside the Pod, read the enviroment variables from our container
+# The alpha information is there but not the beta information. Since beta wasn't defined when the Pod started.
+kubectl exec -it $PODNAME -- /bin/sh 
+printenv | sort
+exit
+
+# If we delete the pod and it gets recreated, we will get the variables for the alpha and beta service information.
+kubectl delete pod $PODNAME
+
+# Get the new pod name and check the environment variables.
+PODNAME=$(kubectl get pods | grep hello-world-alpha | awk '{print $1}' | head -n 1)
+kubectl exec -it $PODNAME -- /bin/sh -c "printenv | sort"
+
+# If we delete our serivce and deployment the enviroment variables stick around.
+kubectl delete deployment hello-world-beta
+kubectl delete service hello-world-beta
+kubectl exec -it $PODNAME -- /bin/sh -c "printenv | sort"
+
+# If we delete the pod to force it recreate it again we will only see the alpha enviroment variables in the pod.
+kubectl delete pod $PODNAME
+PODNAME=$(kubectl get pods | grep hello-world-alpha | awk '{print $1}' | head -n 1)
+kubectl exec -it $PODNAME -- /bin/sh -c "printenv | sort"
+
+#Let's clean up after our demo
+kubectl delete -f deployment-alpha.yaml
