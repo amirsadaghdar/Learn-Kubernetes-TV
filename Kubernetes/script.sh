@@ -1339,3 +1339,98 @@ kubectl exec -it $PODNAME -- /bin/sh -c "printenv | sort"
 
 #Let's clean up after our demo
 kubectl delete -f deployment-alpha.yaml
+
+#################
+### Video 022 ###
+#################
+
+# Creating and accessing Secrets.
+# Generic, creates a secret from a local file, directory or literal value. They keys and values are case sensitive
+kubectl create secret generic app1 \
+    --from-literal=USERNAME=app1login \
+    --from-literal=PASSWORD='Pa55w0rd!'
+
+# Type Opaque means it's an arbitrary user defined key/value pair. Data 2 means two key/value pairs in the secret.
+# Other types include service accounts and container registry authentication info.
+kubectl get secrets
+
+# app1 has 2 Data elements.
+kubectl describe secret app1
+
+# Read the value of a secret.
+# These are wrapped in bash expansion to add a newline to output for readability
+echo $(kubectl get secret app1 --template={{.data.USERNAME}} )
+echo $(kubectl get secret app1 --template={{.data.USERNAME}} | base64 --decode )
+
+echo $(kubectl get secret app1 --template={{.data.PASSWORD}} )
+echo $(kubectl get secret app1 --template={{.data.PASSWORD}} | base64 --decode )
+
+# Accessing Secrets inside a Pod as environment variables.
+kubectl apply -f deployment-secrets-env.yaml
+PODNAME=$(kubectl get pods | grep hello-world-secrets-env | awk '{print $1}' | head -n 1)
+echo $PODNAME
+
+# Get our enviroment variables from our container.
+kubectl exec -it $PODNAME -- /bin/sh
+printenv | grep ^app1
+exit
+
+# Accessing Secrets as files
+kubectl apply -f deployment-secrets-files.yaml
+PODNAME=$(kubectl get pods | grep hello-world-secrets-files | awk '{print $1}' | head -n 1)
+echo $PODNAME
+
+# Look closely at the Pod we see volumes, appconfig and in Mounts.
+kubectl describe pod $PODNAME
+
+#Let's access a shell on the Pod
+kubectl exec -it $PODNAME -- /bin/sh
+
+# We see the path we defined in the Volumes part of the Pod Spec. A directory for each KEY and it's contents are the value.
+ls /etc/appconfig
+cat /etc/appconfig/USERNAME
+cat /etc/appconfig/PASSWORD
+exit
+
+# Clean up after our demos.
+kubectl delete secret app1
+kubectl delete deployment hello-world-secrets-env
+kubectl delete deployment hello-world-secrets-files
+
+#Create a secret using clear text and the stringData field
+kubectl apply -f secret.string.yaml
+kubectl get secrets
+kubectl describe secret app2
+
+echo $(kubectl get secret app2 --template={{.data.USERNAME}} )
+echo $(kubectl get secret app2 --template={{.data.USERNAME}} | base64 --decode )
+echo $(kubectl get secret app2 --template={{.data.PASSWORD}} )
+echo $(kubectl get secret app2 --template={{.data.PASSWORD}} | base64 --decode )
+
+# Create a secret with encoded values, preferred over clear text.
+echo -n 'app3login' | base64
+echo -n 'P@ssWorD!' | base64
+kubectl apply -f secret.encoded.yaml
+kubectl get secrets
+
+# Examine how each object is stored, look at the annotations for the app2 secret.
+kubectl get secrets app2 -o yaml
+kubectl get secrets app3 -o yaml
+
+# Create the app1 secret again.
+kubectl create secret generic app1 --from-literal=USERNAME=app1login --from-literal=PASSWORD='Pa55w0rd!'
+
+# envFrom will create enviroment variables for each key in the named secret app1 with and set it's value set to the secrets value.
+kubectl apply -f deployment-secrets-env-from.yaml
+
+PODNAME=$(kubectl get pods | grep hello-world-secrets-env-from | awk '{print $1}' | head -n 1)
+echo $PODNAME 
+kubectl exec -it $PODNAME -- /bin/sh
+printenv | sort
+exit
+
+
+kubectl delete secret app1
+kubectl delete secret app2
+kubectl delete secret app3
+kubectl delete deployment hello-world-secrets-env-from
