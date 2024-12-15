@@ -1629,3 +1629,153 @@ kubectl describe node ip-192-168-25-30.eu-west-1.compute.internal
 # Clean up after this demo.
 kubectl delete deployment hello-world-requests
 
+
+#################
+### Video 026 ###
+#################
+
+# Using Labels to Schedule Pods to Nodes.
+# Using Affinity and Anti-Affinity to schedule Pods to Nodes.
+# Affinity: we want to have always have a cache pod co-located on a Node where we a Web Pod.
+kubectl apply -f deployment-affinity.yaml
+
+# Check out the labels on the nodes, look for kubernetes.io/hostname which we're using for our topologykey.
+kubectl describe nodes ip-192-168-25-30.eu-west-1.compute.internal
+kubectl get nodes --show-labels
+
+# We can see that web and cache are both on the name node
+kubectl get pods -o wide
+
+# If we scale the web deployment we'll still get spread across nodes in the ReplicaSet, so we don't need to enforce that with affinity
+kubectl scale deployment hello-world-web --replicas=2
+kubectl get pods -o wide
+
+# Then when we scale the cache deployment, it will get scheduled to the same node as the other web server
+kubectl scale deployment hello-world-cache --replicas=2
+kubectl get pods -o wide
+
+#Clean up the resources from these deployments
+kubectl delete -f deployment-affinity.yaml
+
+# Using anti-affinity.
+# Test out anti-affinity, deploy web and cache again.
+kubectl apply -f deployment-antiaffinity.yaml
+kubectl get pods -o wide
+
+# Scale the replicas in the web and cache deployments
+kubectl scale deployment hello-world-web --replicas=4
+
+# Two Pod will go Pending because we can have only 1 Web Pod per node when using requiredDuringSchedulingIgnoredDuringExecution in our antiaffinity rule
+kubectl get pods -o wide --selector app=hello-world-web
+
+# To 'fix' this we can change the scheduling rule to preferredDuringSchedulingIgnoredDuringExecution
+# Also going to set the number of replicas to 4
+kubectl apply -f deployment-antiaffinity-corrected.yaml
+kubectl scale deployment hello-world-web --replicas=4
+
+# Now we'll have 4 pods up an running.
+kubectl get pods -o wide --selector app=hello-world-web
+
+# Clean up the resources from this demos
+kubectl delete -f deployment-antiaffinity-corrected.yaml
+
+#################
+### Video 027 ###
+#################
+
+# Controlling Pods placement with Taints and Tolerations.
+# Add a Taint to one of the nodes.
+kubectl get node
+kubectl taint nodes ip-192-168-25-30.eu-west-1.compute.internal key=MyTaint:NoSchedule
+
+# We can see the taint at the node level.
+kubectl describe node ip-192-168-25-30.eu-west-1.compute.internal
+
+# Create a deployment with three replicas
+kubectl apply -f deployment.yaml
+
+# Pods get placed on the non tainted nodes.
+kubectl get pods -o wide
+
+# We add a deployment with a Toleration.
+kubectl apply -f deployment-tolerations.yaml
+
+# We can see Pods get placed on the tainted nodes.
+kubectl get pods -o wide
+
+# Remove our Taint
+kubectl taint nodes ip-192-168-25-30.eu-west-1.compute.internal key:NoSchedule-
+
+# Clean up after our demo
+kubectl delete -f deployment-tolerations.yaml
+kubectl delete -f deployment.yaml
+
+#################
+### Video 028 ###
+#################
+
+# Node Cordoning.
+# Create a deployment with three replicas.
+kubectl apply -f deployment.yaml
+
+# Pods spread out evenly across the node.s
+kubectl get pods -o wide
+
+# Cordon ip-192-168-25-30.eu-west-1.compute.internal
+kubectl cordon ip-192-168-25-30.eu-west-1.compute.internal
+
+# That won't evict any pods.
+kubectl get pods -o wide
+
+# If I scale the deployment the node we cordoned won't get any new pods. One of the other Nodes will get an extra Pod here.
+kubectl scale deployment hello-world --replicas=6
+kubectl get pods -o wide
+
+# Drain (remove) the Pods from the cordoned node.
+kubectl drain ip-192-168-25-30.eu-west-1.compute.internal
+
+# Try that again since daemonsets aren't scheduled we need to work around them.
+kubectl drain ip-192-168-25-30.eu-west-1.compute.internal --ignore-daemonsets
+
+# Now all the workload is on the other node.
+kubectl get pods -o wide
+
+# We can uncordon our node, but nothing will get scheduled there until there's an event like a scaling operation or an eviction. Something that will cause pods to get created
+kubectl uncordon ip-192-168-25-30.eu-west-1.compute.internal
+
+# Scale that Deployment and see where they get scheduled.
+kubectl scale deployment hello-world --replicas=9
+
+# All three get scheduled to the node that was cordoned.
+kubectl get pods -o wide
+
+# Clean up this demo.
+kubectl delete deployment hello-world
+
+# Manually scheduling a Pod by specifying nodeName
+kubectl apply -f pod.yaml
+
+# Our Pod should be on ip-192-168-25-30.eu-west-1.compute.internal
+kubectl get pod -o wide
+
+# Let's delete our pod, since there's no controller it won't get recreated.
+kubectl delete pod hello-world-pod
+
+# Now let's cordon ip-192-168-25-30.eu-west-1.compute.internal again
+kubectl cordon ip-192-168-25-30.eu-west-1.compute.internal
+
+# Try to recreate our pod
+kubectl apply -f pod.yaml
+
+# We can still place a pod on the node since the Pod isn't getting 'scheduled', status is SchedulingDisabled
+kubectl get pod -o wide
+
+# Can't remove the unmanaged Pod either since it's not managed by a Controller and won't get restarted
+kubectl drain ip-192-168-25-30.eu-west-1.compute.internal --ignore-daemonsets 
+
+
+# Clean up our demo, delete our pod and uncordon the node
+kubectl delete pod hello-world-pod 
+ 
+# Uncordon ip-192-168-25-30.eu-west-1.compute.internal so it's able to have pods scheduled to it.
+kubectl uncordon ip-192-168-25-30.eu-west-1.compute.internal
