@@ -1773,9 +1773,68 @@ kubectl get pod -o wide
 # Can't remove the unmanaged Pod either since it's not managed by a Controller and won't get restarted
 kubectl drain ip-192-168-25-30.eu-west-1.compute.internal --ignore-daemonsets 
 
-
 # Clean up our demo, delete our pod and uncordon the node
 kubectl delete pod hello-world-pod 
  
 # Uncordon ip-192-168-25-30.eu-west-1.compute.internal so it's able to have pods scheduled to it.
 kubectl uncordon ip-192-168-25-30.eu-west-1.compute.internal
+
+#################
+### Video 029 ###
+#################
+
+# Amazon EKS uses the Amazon VPC CNI plugin for pod networking.
+# By default, pods are assigned IP addresses from the same VPC subnets as the nodes in your cluster.
+# However, you can customize this behavior.
+
+# Investigating Kubernetes Networking
+# Get all Nodes and their IP information, INTERNAL-IP is the real IP of the Node
+kubectl get nodes -o wide
+
+# Deploy a basic workload, hello-world with 3 replicas to create some pods on the pod network.
+kubectl apply -f Deployment.yaml
+
+# Get all Pods, we can see each Pod has a unique IP on the Pod Network.
+kubectl get pods -o wide
+
+# Hop inside a pod and check out it's networking.
+PODNAME=$(kubectl get pods --selector=app=hello-world -o jsonpath='{ .items[0].metadata.name }')
+echo $PODNAME
+kubectl exec -it $PODNAME -- /bin/sh
+ip addr
+exit
+
+# For the Pod on ip-192-168-62-216.eu-west-1.compute.internal, let's find out how traffic is is routed.
+
+# Look at the annotations, specifically the annotation alpha.kubernetes.io/provided-node-ip: 192.168.x.y.
+# Check out the Addresses: InternalIP, that's the real IP of the Node.
+kubectl describe node ip-192-168-62-216.eu-west-1.compute.internal
+
+# Let's see how the traffic travels between two pods on two separate nodes.
+# In Amazon EKS, traffic between pods on different nodes is facilitated by the Amazon VPC CNI plugin, which integrates Kubernetes networking with Amazon VPC networking.
+# Each pod gets an IP address from the VPC CIDR range, and these IPs are routable within the VPC.
+# Pods communicate with each other using these IPs, regardless of whether they are on the same node or different nodes.
+# Amazon VPC CNI Plugin allocates secondary IPs from the VPC to pods.
+# Each node has one or more ENIs attached to it. These ENIs are used to assign IPs to pods.
+# VPC Route Table ensures that traffic between different subnets within the VPC is routed correctly.
+# Kubernetes DNS resolves the target pod's IP if Pod A uses a service or pod name.
+# 169.254.1.1 serves as the default gateway for all pods managed by the Amazon VPC CNI plugin.
+# Each ENI is an attachment to the EC2 instance and is used to allocate IP addresses to pods.
+# Each ENI can have multiple secondary IPs (depending on the instance type).
+# These secondary IPs are assigned to pods running on the node.
+# The plugin ensures that every pod gets a unique IP address from the VPC subnet.
+kubectl exec -it $PODNAME -- /bin/sh
+route
+ip addr
+
+# Log into one of the nodes and look at the interfaces.
+ssh ip-192-168-62-216.eu-west-1.compute.internal
+route
+ip addr
+
+# Delete the deployment.
+kubectl delete -f Deployment.yaml 
+
+#################
+### Video 030 ###
+#################
