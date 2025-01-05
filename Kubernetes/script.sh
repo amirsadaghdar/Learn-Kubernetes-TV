@@ -1893,89 +1893,68 @@ kubectl exec -it $PODNAME -- cat /etc/resolv.conf
 kubectl exec -it $PODNAME -- cnslookup www.google.com
 kubectl exec -it $PODNAME -- cnslookup www.yahoo.com
 
-
 #Clean up our resources
 kubectl delete -f DeploymentCustomDns.yaml
 
-
-#Demo 3 - let's get a pods DNS A record and a Services A record
-#Create a deployment and a service
+# Get a pods DNS A record and a Services A record
+# Create a deployment and a service
 kubectl apply -f Deployment.yaml
 
-
-#Get the pods and their IP addresses
+# Get the pods and their IP addresses
 kubectl get pods -o wide
 
-
-#Get the address of our DNS Service again...just in case
+# Get the address of our DNS Service again...just in case
 SERVICEIP=$(kubectl get service --namespace kube-system kube-dns -o jsonpath='{ .spec.clusterIP }')
+echo $SERVICEIP
 
+# For one of the pods replace the dots in the IP address with dashes for example 192.168.206.68 becomes 192-168-206-68
+# We'll look at some additional examples of Service Discovery in the next module too.
+kubectl run -i --tty --rm debug --image=busybox --namespace kube-system -- /bin/sh
+nslookup 192-168-59-10.default.pod.cluster.local 10.100.0.10
 
-#For one of the pods replace the dots in the IP address with dashes for example 192.168.206.68 becomes 192-168-206-68
-#We'll look at some additional examples of Service Discovery in the next module too.
-nslookup 192-168-206-[XX].default.pod.cluster.local $SERVICEIP
+# Our Services also get DNS A records
+kubectl get service
+nslookup hello-world.default.svc.cluster.local 10.100.0.10
 
-
-#Our Services also get DNS A records
-#There's more on service A records in the next demo
-kubectl get service 
-nslookup hello-world.default.svc.cluster.local $SERVICEIP
-
-
-#Clean up our resources
+# Clean up our resources
 kubectl delete -f Deployment.yaml
 
 
-#TODO for the viewer...you can use this technique to verify your DNS forwarder configuration from the first demo in this file. 
-#Recreate the custom configuration by applying the custom configmap defined in CoreDNSConfigCustom.yaml
-#Logging in CoreDNS will log the query, but not which forwarder it was sent to. 
-#We can use tcpdump to listen to the packets on the wire to see where the DNS queries are being sent to.
+# Verify your DNS forwarder configuration. 
+# Recreate the custom configuration by applying the custom configmap defined in CoreDNSConfigCustom.yaml
+# Logging in CoreDNS will log the query, but not which forwarder it was sent to.
+# We can use tcpdump to listen to the packets on the wire to see where the DNS queries are being sent to.
+kubectl apply -f CoreDNSConfigCustom.yaml --namespace kube-system
 
-
-#Find the name of a Node running one of the DNS Pods running...so we're going to observe DNS queries there.
+# Find the name of a Node running one of the DNS Pods running. So we're going to observe DNS queries there.
 DNSPODNODENAME=$(kubectl get pods --namespace kube-system --selector=k8s-app=kube-dns -o jsonpath='{ .items[0].spec.nodeName }')
 echo $DNSPODNODENAME
 
-
-#Let's log into THAT node running the dns pod and start a tcpdump to watch our dns queries in action.
-#Your interface (-i) name may be different
-ssh aen@$DNSPODNODENAME
+# Let's log into that node running the dns pod and start a tcpdump to watch our dns queries in action.
+# Your interface (-i) name may be different
 sudo tcpdump -i ens33 port 53 -n 
 
-
-#In a second terminal, let's test our DNS configuration from a pod to make sure we're using the configured forwarder.
-#When this pod starts, it will point to our cluster dns service.
-#Install dnsutils for nslookup and dig
-ssh aen@c1-cp1
+# In a second terminal, let's test our DNS configuration from a pod to make sure we're using the configured forwarder.
+# When this pod starts, it will point to our cluster dns service.
+# Install dnsutils for nslookup and dig
 kubectl run -it --rm debian --image=debian
 apt-get update && apt-get install dnsutils -y
 
 
-#In our debian pod let's look at the dns config and run two test DNS queries
-#The nameserver will be your cluster dns service cluster ip.
-#We'll query two domains to generate traffic for our tcpdump
+# In our debian pod let's look at the dns config and run two test DNS queries
+# The nameserver will be your cluster dns service cluster ip.
+# We'll query two domains to generate traffic for our tcpdump
 cat /etc/resolv.conf
-nslookup www.pluralsight.com
-nslookup www.centinosystems.com
+nslookup www.google.com
+nslookup www.yahoo.com
 
+# Switch back to our second terminal and review the tcpdump, confirming each query is going to the correct forwarder
+# Here is some example output...www.google.com is going to 1.1.1.1 and www.centinosystems.com is going to 9.9.9.9
+# 23:03:25.387166 IP 192.168.62.216.15047 > 9.9.9.9.domain: 59620+ A? www.google.com. (32)
+# 23:03:25.388776 IP 9.9.9.9.domain > 192.168.62.216.15047: 59620 1/0/0 A 216.58.204.68 (48)
+# 23:03:33.110370 IP 192.168.62.216.31321 > 1.1.1.1.domain: 30402+ A? www.yahoo.com.eu-west-1.compute.internal. (58)
+# 23:03:33.133091 IP 1.1.1.1.domain > 192.168.62.216.31321: 30402 NXDomain 0/1/0 (133)
 
-#Switch back to our second terminal and review the tcpdump, confirming each query is going to the correct forwarder
-#Here is some example output...www.pluralsight.com is going to 1.1.1.1 and www.centinosystems.com is going to 9.9.9.9
-#172.16.94.13.63841 > 1.1.1.1.53: 24753+ A? www.pluralsight.com. (37)
-#172.16.94.13.42523 > 9.9.9.9.53: 29485+ [1au] A? www.centinosystems.com. (63)
-
-#Exit the tcpdump
+# Exit the tcpdump
 ctrl+c
-
-
-#Log out of the node, back onto c1-cp1
-exit
-
-
-#Switch sessions and break out of our pod and it will be deleted.
-exit
-
-
-#Exit out of our second SSH session and get a shell back on c1-cp1
-exit
 
