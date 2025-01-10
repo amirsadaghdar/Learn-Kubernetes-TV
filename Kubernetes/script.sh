@@ -1919,7 +1919,6 @@ nslookup hello-world.default.svc.cluster.local 10.100.0.10
 # Clean up our resources
 kubectl delete -f Deployment.yaml
 
-
 # Verify your DNS forwarder configuration. 
 # Recreate the custom configuration by applying the custom configmap defined in CoreDNSConfigCustom.yaml
 # Logging in CoreDNS will log the query, but not which forwarder it was sent to.
@@ -1940,7 +1939,6 @@ sudo tcpdump -i ens33 port 53 -n
 kubectl run -it --rm debian --image=debian
 apt-get update && apt-get install dnsutils -y
 
-
 # In our debian pod let's look at the dns config and run two test DNS queries
 # The nameserver will be your cluster dns service cluster ip.
 # We'll query two domains to generate traffic for our tcpdump
@@ -1958,3 +1956,215 @@ nslookup www.yahoo.com
 # Exit the tcpdump
 ctrl+c
 
+#################
+### Video 031 ###
+#################
+
+# Exposing and accessing applications with Services.
+# Creating a ClusterIP Service.
+# Imperative, create a deployment with one replica.
+kubectl create deployment hello-world-clusterip \
+    --image=psk8s.azurecr.io/hello-app:1.0
+
+# When creating a service, you can define a type, if you don't define a type, the default is ClusterIP
+kubectl expose deployment hello-world-clusterip \
+    --port=80 --target-port=8080 --type ClusterIP
+
+# Get a list of services, examine the Type, CLUSTER-IP and Port
+# Kubernetes is a default service in every Kubernetes cluster. This service is automatically created by Kubernetes and represents the Kubernetes API server.
+kubectl get service
+
+# Get the Service's ClusterIP and store that for reuse.
+SERVICEIP=$(kubectl get service hello-world-clusterip -o jsonpath='{ .spec.clusterIP }')
+echo $SERVICEIP
+
+# Access the service inside the cluster from one from the noes.
+curl http://$SERVICEIP
+
+# Get a listing of the endpoints for a service, we see the one pod endpoint registered.
+kubectl get endpoints hello-world-clusterip
+kubectl get pods -o wide
+
+# Access the pod's application directly on the Target Port on the Pod, not the service's Port, useful for troubleshooting.
+kubectl get endpoints hello-world-clusterip
+PODIP=$(kubectl get endpoints hello-world-clusterip -o jsonpath='{ .subsets[].addresses[].ip }')
+echo $PODIP
+curl http://$PODIP:8080
+
+# Scale the deployment, new endpoints are registered automatically
+kubectl scale deployment hello-world-clusterip --replicas=6
+kubectl get endpoints hello-world-clusterip
+
+# Access the service inside the cluster, this time our requests will be load balanced.
+curl http://$SERVICEIP
+
+# The Service's Endpoints match the labels, let's look at the service and it's selector and the pods labels.
+kubectl describe service hello-world-clusterip
+kubectl get pods --show-labels
+
+# Clean up these resources for the next demo
+kubectl delete deployments hello-world-clusterip
+kubectl delete service hello-world-clusterip
+
+# Creating a NodePort Service.
+# Imperative, create a deployment with one replica
+kubectl create deployment hello-world-nodeport \
+    --image=psk8s.azurecr.io/hello-app:1.0
+
+# When creating a service, you can define a type, if you don't define a type, the default is ClusterIP.
+kubectl expose deployment hello-world-nodeport \
+    --port=80 --target-port=8080 --type NodePort
+
+# Check out the services details.
+# There's the Node Port after the : in the Ports column. It's also got a ClusterIP and Port.
+# This NodePort service is available on that NodePort on each node in the cluster.
+kubectl get service
+
+CLUSTERIP=$(kubectl get service hello-world-nodeport -o jsonpath='{ .spec.clusterIP }')
+PORT=$(kubectl get service hello-world-nodeport -o jsonpath='{ .spec.ports[].port }')
+NODEPORT=$(kubectl get service hello-world-nodeport -o jsonpath='{ .spec.ports[].nodePort }')
+echo $CLUSTERIP $PORT $NODEPORT
+
+# Access the services on the Node Port.
+# We can do that on each node in the cluster and from outside the cluster, regardless of where the pod actually is
+
+#We have only one pod online supporting our service
+kubectl get pods -o wide
+
+# We can access the service by hitting the node port on any node in the cluster on the node's IP or Name.
+# This will forward to the cluster IP and get load balanced to a Pod. Even if there is only one Pod.
+kubectl get node
+curl http://192.168.25.30:31273
+curl http://192.168.25.216:31273
+
+#And a Node port service is also listening on a Cluster IP, in fact the Node Port traffic is routed to the ClusterIP
+echo $CLUSTERIP:$PORT
+curl http://10.100.74.16:80
+
+#Let's delete that service
+kubectl delete service hello-world-nodeport
+kubectl delete deployment hello-world-nodeport
+
+
+# Create LoadBalancer Services.
+# Let's create a deployment.
+kubectl create deployment hello-world-loadbalancer \
+    --image=psk8s.azurecr.io/hello-app:1.0
+
+# When creating a service, you can define a type, if you don't define a type, the default is ClusterIP.
+kubectl expose deployment hello-world-loadbalancer \
+    --port=80 --target-port=8080 --type LoadBalancer
+
+# Get the service details and test accessing it.
+kubectl get service
+LOADBALANCERIP=$(kubectl get service hello-world-loadbalancer -o jsonpath='{ .status.loadBalancer.ingress[].hostname }')
+PORT=$(kubectl get service hello-world-loadbalancer -o jsonpath='{ .spec.ports[].port }')
+echo $LOADBALANCERIP $PORT
+curl http://$LOADBALANCERIP:$PORT
+
+# The loadbalancer, which is 'outside' your cluster, sends traffic to the NodePort Service which sends it to the ClusterIP to get to your pods!
+# Your cloud load balancer will have health probes checking the health of the node port service on the node IPs.
+# This isn't the health of our application, that still needs to be configured via readiness/liveness probes and maintained by your Deployment configuration
+kubectl get service hello-world-loadbalancer
+
+# Clean up the resources from this demo
+kubectl delete deployment hello-world-loadbalancer
+kubectl delete service hello-world-loadbalancer
+
+# Declarative examples
+# Create a ClusterIP service.
+kubectl apply -f service-hello-world-clusterip.yaml
+kubectl get service
+
+# Create a NodePort with a predefined port, first with a port outside of the NodePort range then a corrected one.
+kubectl apply -f service-hello-world-nodeport-incorrect.yaml
+kubectl apply -f service-hello-world-nodeport.yaml
+kubectl get service
+
+# Create a cloud load balancer
+kubectl apply -f service-hello-world-loadbalancer.yaml
+kubectl get service
+
+# Clean up these resources
+kubectl delete -f service-hello-world-loadbalancer.yaml
+kubectl delete -f service-hello-world-nodeport.yaml
+kubectl delete -f service-hello-world-clusterip.yaml
+
+#################
+### Video 032 ###
+#################
+
+#Service Discovery
+#Cluster DNS
+
+# Create a deployment in the default namespace
+kubectl create deployment hello-world-clusterip \
+    --image=psk8s.azurecr.io/hello-app:1.0
+
+# Expose the deployment as a ClusterIP service.
+kubectl expose deployment hello-world-clusterip \
+    --port=80 --target-port=8080 --type ClusterIP
+
+# We can use nslookup or dig to investigate the DNS record
+# 10.100.0.10 is the ClusterIP service for the DNS service.
+kubectl get service kube-dns --namespace kube-system
+
+# Each service gets a DNS record, we can use this in our applications to find services by name.
+# The A record is in the form <servicename>.<namespace>.svc.<clusterdomain>
+kubectl run -it --rm debian --image=debian
+apt-get update && apt-get install dnsutils -y
+
+nslookup hello-world-clusterip.default.svc.cluster.local 10.100.0.10
+kubectl get service hello-world-clusterip
+
+# Create a namespace, deployment with one replica and a service
+kubectl create namespace ns1
+
+# Create a deployment with the same name as the first one, but in our new namespace
+kubectl create deployment hello-world-clusterip --namespace ns1 \
+    --image=psk8s.azurecr.io/hello-app:1.0
+
+kubectl expose deployment hello-world-clusterip --namespace ns1 \
+    --port=80 --target-port=8080 --type ClusterIP
+
+# Check the DNS record for the service in the namespace, ns1. See how ns1 is in the DNS record?
+# <servicename>.<namespace>.svc.<clusterdomain>
+nslookup hello-world-clusterip.ns1.svc.cluster.local 10.100.0.10
+
+# Our service in the default namespace is still there, these are completely unique services.
+nslookup hello-world-clusterip.default.svc.cluster.local 10.100.0.10
+
+# Get the environment variables for the pod in our default namespace
+# The service does not exist in the environment variables because the service was created after the pod was already up and running.
+PODNAME=$(kubectl get pods -o jsonpath='{ .items[].metadata.name }')
+echo $PODNAME
+kubectl exec -it $PODNAME -- env | sort
+
+# Environment variables are only created at pod start up, so let's delete the pod
+kubectl delete pod $PODNAME
+
+# Check the enviroment variables again.
+PODNAME=$(kubectl get pods -o jsonpath='{ .items[].metadata.name }')
+echo $PODNAME
+kubectl exec -it $PODNAME -- env | sort
+
+# ExternalName
+# This create a CNAME record type in DNS.
+kubectl apply -f service-externalname.yaml
+
+# The record is in the form <servicename>.<namespace>.<clusterdomain>. You may get an error that says ** server can't find hello-world.api.example.com: NXDOMAIN this is ok.
+kubectl run -it --rm debian --image=debian
+apt-get update && apt-get install dnsutils -y
+nslookup hello-world-api.default.svc.cluster.local 10.100.0.10
+
+#Let's clean up our resources in this demo
+kubectl delete service hello-world-api
+kubectl delete service hello-world-clusterip
+kubectl delete service hello-world-clusterip --namespace ns1
+kubectl delete deployment hello-world-clusterip
+kubectl delete deployment hello-world-clusterip --namespace ns1
+kubectl delete namespace ns1
+
+#################
+### Video 033 ###
+#################
