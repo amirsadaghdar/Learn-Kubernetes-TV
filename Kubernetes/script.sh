@@ -2294,3 +2294,15 @@ rm tls.key
 
 # Delete the ingress, ingress controller and other configuration elements
 kubectl delete -f deploy.yaml
+
+#################
+### Video 034 ###
+#################
+
+#Install Docker Desktop
+#choco install kubernetes-cli
+
+choco install minikube
+minikube version
+minikube start --driver=docker
+minikube start --driver=docker --nodes=3
