@@ -2299,10 +2299,15 @@ kubectl delete -f deploy.yaml
 ### Video 034 ###
 #################
 
-#Install Docker Desktop
-#choco install kubernetes-cli
+# Install Docker Desktop
+# install kubernetes-cli
 
-choco install minikube
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install minikube
 minikube version
-minikube start --driver=docker
 minikube start --driver=docker --nodes=3
+minikube status
+minikube stop
+minikube delete
+
+kubectl get node
