@@ -2299,9 +2299,8 @@ kubectl delete -f deploy.yaml
 ### Video 034 ###
 #################
 
-# Install Docker Desktop
-# install kubernetes-cli
-
+# Install Docker Desktop and kubernetes-cli.
+# Install Minikube.
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install minikube
 minikube version
@@ -2310,4 +2309,30 @@ minikube status
 minikube stop
 minikube delete
 
-kubectl get node
+# Login to the Control Plane.
+kubectl get node -o wide
+minikube ssh -n minikube
+hostname
+crictl ps
+exit
+
+# Check out some of the key etcd configuration information
+# Container image and tag, command, --data dir, and mounts and volumes for both etcd-certs and etcd-data
+kubectl describe pod etcd -n kube-system
+
+# The configuration for etcd comes from the static pod manifest, check out the listen-client-urls, data-dir, volumeMounts, volumes/
+minikube ssh -n minikube
+sudo more /etc/kubernetes/manifests/etcd.yaml
+
+# You can get the runtime values from ps -aux
+ps -aux | grep -i etcd
+exit
+
+# Get etcdctl on our local system by downloading it from github.
+# We can find out the version of etcd we're running by using etcd --version inside the etcd pod.
+kubectl exec -it etcd-minikube -n kube-system -- /bin/sh -c 'ETCDCTL_API=3 /usr/local/bin/etcd --version' | head
+export RELEASE="3.5.16"
+wget https://github.com/etcd-io/etcd/releases/download/v${RELEASE}/etcd-v${RELEASE}-linux-amd64.tar.gz
+tar -zxvf etcd-v${RELEASE}-linux-amd64.tar.gz
+cd etcd-v${RELEASE}-linux-amd64
+sudo cp etcdctl /usr/local/bin
