@@ -1,0 +1,555 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "CapacityProvisioned": "0.25vCPU 0.5GB",
+                    "Logging": "LoggingDisabled: LOGGING_CONFIGMAP_NOT_FOUND"
+                },
+                "creationTimestamp": "2025-02-10T00:41:47Z",
+                "generateName": "hello-world-678d745744-",
+                "labels": {
+                    "app": "hello-world",
+                    "eks.amazonaws.com/fargate-profile": "lkt-temp-08-fp",
+                    "pod-template-hash": "678d745744"
+                },
+                "name": "hello-world-678d745744-4vr5w",
+                "namespace": "default",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "ReplicaSet",
+                        "name": "hello-world-678d745744",
+                        "uid": "8b91199d-dc69-477e-93e3-44c6121ba453"
+                    }
+                ],
+                "resourceVersion": "38962649",
+                "uid": "bce08074-765b-49d8-b890-8486fba907ad"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "hello-app",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-q7hpb",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "nodeName": "fargate-ip-192-168-118-156.eu-west-1.compute.internal",
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 2000001000,
+                "priorityClassName": "system-node-critical",
+                "restartPolicy": "Always",
+                "schedulerName": "fargate-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "kube-api-access-q7hpb",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:43Z",
+                        "status": "True",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:39Z",
+                        "status": "True",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:43Z",
+                        "status": "True",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:43Z",
+                        "status": "True",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:38Z",
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "containerID": "containerd://4107fd8eefd4054692f92dd67703e0ce6e23a61768523472acfb13f5729111a4",
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imageID": "psk8s.azurecr.io/hello-app@sha256:a3af38fd5a7dbfe9328f71b00d04516e8e9c778b4886e8aaac8d9e8862a09bc7",
+                        "lastState": {},
+                        "name": "hello-app",
+                        "ready": true,
+                        "restartCount": 0,
+                        "started": true,
+                        "state": {
+                            "running": {
+                                "startedAt": "2025-02-10T00:42:42Z"
+                            }
+                        }
+                    }
+                ],
+                "hostIP": "192.168.118.156",
+                "hostIPs": [
+                    {
+                        "ip": "192.168.118.156"
+                    }
+                ],
+                "phase": "Running",
+                "podIP": "192.168.118.156",
+                "podIPs": [
+                    {
+                        "ip": "192.168.118.156"
+                    }
+                ],
+                "qosClass": "BestEffort",
+                "startTime": "2025-02-10T00:42:39Z"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "CapacityProvisioned": "0.25vCPU 0.5GB",
+                    "Logging": "LoggingDisabled: LOGGING_CONFIGMAP_NOT_FOUND"
+                },
+                "creationTimestamp": "2025-02-10T00:41:47Z",
+                "generateName": "hello-world-678d745744-",
+                "labels": {
+                    "app": "hello-world",
+                    "eks.amazonaws.com/fargate-profile": "lkt-temp-08-fp",
+                    "pod-template-hash": "678d745744"
+                },
+                "name": "hello-world-678d745744-j5r5g",
+                "namespace": "default",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "ReplicaSet",
+                        "name": "hello-world-678d745744",
+                        "uid": "8b91199d-dc69-477e-93e3-44c6121ba453"
+                    }
+                ],
+                "resourceVersion": "38962633",
+                "uid": "0e676be8-67cc-42ec-a2db-af69da8236ab"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "hello-app",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-25gx4",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "nodeName": "fargate-ip-192-168-99-113.eu-west-1.compute.internal",
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 2000001000,
+                "priorityClassName": "system-node-critical",
+                "restartPolicy": "Always",
+                "schedulerName": "fargate-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "kube-api-access-25gx4",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:41Z",
+                        "status": "True",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:36Z",
+                        "status": "True",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:41Z",
+                        "status": "True",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:41Z",
+                        "status": "True",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:35Z",
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "containerID": "containerd://a7976b5ca97bb1471458be911560d88a562abf04b5e8af62c697553c08b7a187",
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imageID": "psk8s.azurecr.io/hello-app@sha256:a3af38fd5a7dbfe9328f71b00d04516e8e9c778b4886e8aaac8d9e8862a09bc7",
+                        "lastState": {},
+                        "name": "hello-app",
+                        "ready": true,
+                        "restartCount": 0,
+                        "started": true,
+                        "state": {
+                            "running": {
+                                "startedAt": "2025-02-10T00:42:40Z"
+                            }
+                        }
+                    }
+                ],
+                "hostIP": "192.168.99.113",
+                "hostIPs": [
+                    {
+                        "ip": "192.168.99.113"
+                    }
+                ],
+                "phase": "Running",
+                "podIP": "192.168.99.113",
+                "podIPs": [
+                    {
+                        "ip": "192.168.99.113"
+                    }
+                ],
+                "qosClass": "BestEffort",
+                "startTime": "2025-02-10T00:42:36Z"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "CapacityProvisioned": "0.25vCPU 0.5GB",
+                    "Logging": "LoggingDisabled: LOGGING_CONFIGMAP_NOT_FOUND"
+                },
+                "creationTimestamp": "2025-02-10T00:41:44Z",
+                "generateName": "hello-world-678d745744-",
+                "labels": {
+                    "app": "hello-world",
+                    "eks.amazonaws.com/fargate-profile": "lkt-temp-08-fp",
+                    "pod-template-hash": "678d745744"
+                },
+                "name": "hello-world-678d745744-wjjfx",
+                "namespace": "default",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "ReplicaSet",
+                        "name": "hello-world-678d745744",
+                        "uid": "8b91199d-dc69-477e-93e3-44c6121ba453"
+                    }
+                ],
+                "resourceVersion": "38962668",
+                "uid": "ddeae637-b5f3-45d0-91c6-d3ed2ca537be"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "hello-app",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-hzbnz",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "nodeName": "fargate-ip-192-168-172-29.eu-west-1.compute.internal",
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 2000001000,
+                "priorityClassName": "system-node-critical",
+                "restartPolicy": "Always",
+                "schedulerName": "fargate-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "kube-api-access-hzbnz",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:45Z",
+                        "status": "True",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:41Z",
+                        "status": "True",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:45Z",
+                        "status": "True",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:45Z",
+                        "status": "True",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2025-02-10T00:42:41Z",
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "containerID": "containerd://a866bef4642a58e2e4e25d46bdf1af881e5894150907871c2a82de7beb2be331",
+                        "image": "psk8s.azurecr.io/hello-app:1.0",
+                        "imageID": "psk8s.azurecr.io/hello-app@sha256:a3af38fd5a7dbfe9328f71b00d04516e8e9c778b4886e8aaac8d9e8862a09bc7",
+                        "lastState": {},
+                        "name": "hello-app",
+                        "ready": true,
+                        "restartCount": 0,
+                        "started": true,
+                        "state": {
+                            "running": {
+                                "startedAt": "2025-02-10T00:42:45Z"
+                            }
+                        }
+                    }
+                ],
+                "hostIP": "192.168.172.29",
+                "hostIPs": [
+                    {
+                        "ip": "192.168.172.29"
+                    }
+                ],
+                "phase": "Running",
+                "podIP": "192.168.172.29",
+                "podIPs": [
+                    {
+                        "ip": "192.168.172.29"
+                    }
+                ],
+                "qosClass": "BestEffort",
+                "startTime": "2025-02-10T00:42:41Z"
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

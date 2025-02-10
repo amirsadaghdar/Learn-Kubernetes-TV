@@ -2455,5 +2455,422 @@ rm ~/content/course/02/demo/etcd-v${RELEASE}-linux-amd64.tar.gz
 
 
 #################
-### Video 035 ###
+### Video 035 ### NOT READY
 #################
+
+ssh aen@c1-cp1
+cd ~/content/course/02/demo
+
+
+
+#1 - Find the version you want to upgrade to. 
+#You can only upgrade one minor version to the next minor version
+sudo apt update
+apt-cache policy kubeadm
+
+
+#What version are we on? #--short has been deprecated, you can remove this parameter if needed.
+kubectl version --short
+kubectl get nodes
+
+
+#First, upgrade kubeadm on the Control Plane Node
+#Replace the version with the version you want to upgrade to.
+sudo apt-mark unhold kubeadm
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.26.1-00
+sudo apt-mark hold kubeadm
+
+
+#All good?
+kubeadm version
+
+
+#Next, Drain any workload on the Control Plane Node node
+kubectl drain c1-cp1 --ignore-daemonsets
+
+
+#Run upgrade plan to test the upgrade process and run pre-flight checks
+#Highlights additional work needed after the upgrade, such as manually updating the kubelets
+#And displays version information for the control plan components
+sudo kubeadm upgrade plan v1.26.1
+
+
+#Run the upgrade, you can get this from the previous output.
+#Runs preflight checks - API available, Node status Ready and control plane healthy
+#Checks to ensure you're upgrading along the correct upgrade path
+#Prepulls container images to reduce downtime of control plane components
+#For each control plane component, 
+#   Updates the certificates used for authentication
+#   Creates a new static pod manifest in /etc/kubernetes/mainifests and saves the old one to /etc/kubernetes/tmp
+#   Which causes the kubelet to restart the pods
+#Updates the Control Plane Node's kubelet configuration and also updates CoreDNS and kube-proxy
+sudo kubeadm upgrade apply v1.26.1  #<---this format is different than the package's version format
+
+
+#Look for [upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.xx.yy". Enjoy!
+
+
+#Uncordon the node
+kubectl uncordon c1-cp1 
+
+
+#Now update the kubelet and kubectl on the control plane node(s)
+sudo apt-mark unhold kubelet kubectl 
+sudo apt-get update
+sudo apt-get install -y kubelet=1.26.1-00 kubectl=1.26.1-00
+sudo apt-mark hold kubelet kubectl
+
+
+#Check the update status
+kubectl version --short
+kubectl get nodes
+
+
+#Upgrade any additional control plane nodes with the same process.
+
+
+#Upgrade the workers, drain the node, then log into it. 
+#Update the enviroment variable so you can reuse those code over and over.
+kubectl drain c1-node[XX] --ignore-daemonsets
+ssh aen@c1-node[XX]
+
+
+#First, upgrade kubeadm 
+sudo apt-mark unhold kubeadm 
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.26.1-00
+sudo apt-mark hold kubeadm
+
+
+#Updates kubelet configuration for the node
+sudo kubeadm upgrade node
+
+
+#Update the kubelet and kubectl on the node
+sudo apt-mark unhold kubelet kubectl 
+sudo apt-get update
+sudo apt-get install -y kubelet=1.26.1-00 kubectl=1.26.1-00
+sudo apt-mark hold kubelet kubectl
+
+
+#Log out of the node
+exit
+
+
+#Get the nodes to show the version...can take a second to update
+kubectl get nodes 
+
+
+#Uncordon the node to allow workload again
+kubectl uncordon c1-node[XX]
+
+
+#check the versions of the nodes
+kubectl get nodes
+
+
+####TO DO###
+####BE SURE TO UPGRADE THE REMAINING WORKER NODES#####
+
+
+#check the versions of the nodes
+kubectl get nodes
+
+
+#################
+### Video 036 ### 2 and 3 - NODES IS NOT READY
+#################
+
+# Review pod logs
+# Check the logs for a single container pod.
+kubectl create deployment nginx --image=nginx
+PODNAME=$(kubectl get pods -l app=nginx -o jsonpath='{ .items[0].metadata.name }')
+echo $PODNAME
+kubectl logs $PODNAME
+
+# Clean up that deployment
+kubectl delete deployment nginx
+
+# Create a multi-container pod that writes some information to stdout
+kubectl apply -f multicontainer.yaml
+
+# Pods a specific container in a Pod and a collection of Pods
+PODNAME=$(kubectl get pods -l app=loggingdemo -o jsonpath='{ .items[0].metadata.name }')
+echo $PODNAME
+
+# Get the logs from the multicontainer pod.
+# It defualts to the first container.
+kubectl logs $PODNAME
+
+# We can to specify which container inside the pods
+kubectl logs $PODNAME -c container1
+kubectl logs $PODNAME -c container2
+
+# We can access all container logs which will dump each containers in sequence
+kubectl logs $PODNAME --all-containers
+
+# If we need to follow a log, we can do that. It's helpful in debugging real time issues
+# This works for both single and multi-container pods
+kubectl logs $PODNAME --all-containers --follow
+ctrl+c
+
+# For all pods matching the selector, get all the container logs and write it to stdout and then file
+kubectl get pods --selector app=loggingdemo
+kubectl logs --selector app=loggingdemo --all-containers 
+kubectl logs --selector app=loggingdemo --all-containers  > allpods.txt
+
+# Also helpful is tailing the bottom of a log.
+# Here we're getting the last 5 log entries across all pods matching the selector
+kubectl logs --selector app=loggingdemo --all-containers --tail 5
+
+
+
+
+#2 - Nodes
+#Get key information and status about the kubelet, ensure that it's active/running and check out the log. 
+#Also key information about it's configuration is available.
+systemctl status kubelet.service
+
+
+#If we want to examine it's log further, we use journalctl to access it's log from journald
+# -u for which systemd unit. If using a pager, use f and b to for forward and back.
+journalctl -u kubelet.service
+
+
+#journalctl has search capabilities, but grep is likely easier
+journalctl -u kubelet.service | grep -i ERROR
+
+
+#Time bounding your searches can be helpful in finding issues add --no-pager for line wrapping
+journalctl -u kubelet.service --since today --no-pager
+
+
+
+#3 - Control plane
+#Get a listing of the control plane pods using a selector
+kubectl get pods --namespace kube-system --selector tier=control-plane
+
+
+#We can retrieve the logs for the control plane pods by using kubectl logs
+#This info is coming from the API server over kubectl, 
+#it instructs the kubelet will read the log from the node and send it back to you over stdout
+kubectl logs --namespace kube-system kube-apiserver-c1-cp1  
+
+
+#But, what if your control plane is down? Go to crictl or to the file system.
+#kubectl logs will send the request to the local node's kubelet to read the logs from disk
+#Since we're on the Control Plane Node/control plane node already we can use crictl for that.
+sudo crictl --runtime-endpoint unix:///run/containerd/containerd.sock ps
+
+
+#Grab the log for the api server pod, paste in the CONTAINER ID using crictl
+sudo crictl --runtime-endpoint unix:///run/containerd/containerd.sock ps | grep kube-apiserver
+CONTAINER_ID=$(sudo crictl --runtime-endpoint unix:///run/containerd/containerd.sock ps | grep kube-apiserver | awk '{ print $1 }')
+echo $CONTAINER_ID
+sudo crictl --runtime-endpoint unix:///run/containerd/containerd.sock logs $CONTAINER_ID
+
+
+#But, what if containerd isn't not available?
+#They're also available on the filesystem, here you'll find the current and the previous logs files for the containers. 
+#This is the same across all nodes and pods in the cluster. This also applies to user pods/containers.
+#These are json formmatted which is the docker/containerd logging driver default
+sudo ls /var/log/containers
+sudo tail /var/log/containers/kube-apiserver-c1-cp1*
+
+# Review Events
+# Show events for all objects in the cluster in the default namespace
+# Look for the deployment creation and scaling operations from above.
+kubectl get events -A
+
+# It can be easier if the data is actually sorted.
+# sort by isn't for just events, it can be used in most output
+kubectl get events -A --sort-by='.metadata.creationTimestamp'
+ 
+# Create a flawed deployment
+kubectl create deployment nginx --image ngins
+
+# We can filter the list of events using field selector
+kubectl get events --field-selector type=Warning
+kubectl get events --field-selector type=Warning,reason=Failed
+
+# We can also monitor the events as they happen with watch
+kubectl scale deployment loggingdemo --replicas=5
+kubectl get events --watch &
+
+# We can look in another namespace too if needed.
+kubectl get events --namespace kube-system
+
+# These events are also available in the object as part of kubectl describe, in the events section
+kubectl describe deployment nginx
+kubectl describe replicaset nginx-79654b8786 #Update to your replicaset name
+kubectl describe pods nginx
+
+# Clean up our resources
+kubectl delete -f multicontainer.yaml
+kubectl delete deployment nginx
+
+# The event data is still availble from the cluster's events, even though the objects are gone.
+kubectl get events --sort-by='.metadata.creationTimestamp'
+
+#################
+### Video 037 ###
+#################
+
+# Accessing information with jsonpath
+# Create a workload and scale it
+kubectl create deployment hello-world --image=psk8s.azurecr.io/hello-app:1.0
+kubectl scale  deployment hello-world --replicas=3
+kubectl get pods -l app=hello-world
+
+# We're working with the json output of our objects, in this case pods
+# Let's start by accessing that list of Pods, inside items.
+# Look at the items, find the metadata and name sections in the json output
+kubectl get pods -l app=hello-world -o json > pods.json
+
+# It's a list of objects, so let's display the pod names
+kubectl get pods -l app=hello-world -o jsonpath='{ .items[*].metadata.name }'
+
+# Display all pods names, this will put the new line at the end of the set rather then on each object output to screen.
+# Additional tips on formatting code in the examples below including adding a new line after each object
+kubectl get pods -l app=hello-world -o jsonpath='{ .items[*].metadata.name }{"\n"}'
+
+#It's a list of objects, so let's display the first (zero'th) pod from the output
+kubectl get pods -l app=hello-world -o jsonpath='{ .items[0].metadata.name }{"\n"}'
+
+#Get all container images in use by all pods in all namespaces
+kubectl get pods --all-namespaces -o jsonpath='{ .items[*].spec.containers[*].image }{"\n"}'
+
+#Filtering a specific value in a list
+#Let's say there's an list inside items and you need to access an element in that list.
+#  ?() - defines a filter
+#  @ - the current object
+kubectl get nodes -o json
+kubectl get nodes -o jsonpath="{.items[*].status.addresses[?(@.type=='InternalIP')].address}"
+
+# Sorting
+#Use the --sort-by parameter and define which field you want to sort on. It can be any field in the object.
+kubectl get pods -A -o jsonpath='{ .items[*].metadata.name }{"\n"}' --sort-by=.metadata.name
+
+
+#Now that we're sorting that output, maybe we want a listing of all pods sorted by a field that's part of the 
+#object but not part of the default kubectl output. like creationTimestamp and we want to see what that value is
+#We can use a custom colume to output object field data, in this case the creation timestamp
+kubectl get pods -A -o jsonpath='{ .items[*].metadata.name }{"\n"}' \
+    --sort-by=.metadata.creationTimestamp \
+    --output=custom-columns='NAME:metadata.name,CREATIONTIMESTAMP:metadata.creationTimestamp'
+
+# Clean up our resources
+kubectl delete deployment hello-world 
+
+# Let's use the range operator to print a new line for each object in the list
+kubectl get pods -l app=hello-world -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+
+# Combining more than one piece of data, we can use range again to help with this
+kubectl get pods -l app=hello-world -o jsonpath='{range .items[*]}{.metadata.name}{.spec.containers[*].image}{"\n"}{end}'
+
+# All container images across all pods in all namespaces
+# Range iterates over a list performing the formatting operations on each element in the list
+# We can also add in a sort on the container image name
+kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}' \
+    --sort-by=.spec.containers[*].image
+
+# We can use range again to clean up the output if we want
+kubectl get nodes -o jsonpath='{range .items[*]}{.status.addresses[?(@.type=="InternalIP")].address}{"\n"}{end}'
+kubectl get nodes -o jsonpath='{range .items[*]}{.status.addresses[?(@.type=="Hostname")].address}{"\n"}{end}'
+
+# We used --sortby when looking at Events earlier, let's use it for another something else now.
+# Let's take our container image output from above and sort it
+kubectl get pods -A -o jsonpath='{ .items[*].spec.containers[*].image }' --sort-by=.spec.containers[*].image
+kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.name }{"\t"}{.spec.containers[*].image }{"\n"}{end}' --sort-by=.spec.containers[*].image
+
+# Adding in a spaces or tabs in the output to make it a bit more readable
+kubectl get pods -l app=hello-world -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.containers[*].image}{"\n"}{end}'
+kubectl get pods -l app=hello-world -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}'
+
+#################
+### Video 038 ###
+#################
+
+ssh aen@c1-cp1
+cd ~/content/course/03/demo
+
+
+#Get the Metrics Server deployment manifest from github, the release version may change
+#Check here for newer versions --->  https://github.com/kubernetes-sigs/metrics-server
+wget https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.0/components.yaml
+
+
+#Add these two lines to metrics server's container args, around line 132
+# - --kubelet-insecure-tls
+# - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+
+
+#Deploy the manifest for the Metrics Server
+kubectl apply -f components.yaml
+
+
+#Is the Metrics Server running?
+kubectl get pods --namespace kube-system
+
+
+#Let's test it to see if it's collecting data, we can get core information about memory and CPU.
+#This can take a second...
+kubectl top nodes
+
+
+#If you have any issues check out the logs for the metric server...
+kubectl logs --namespace kube-system -l k8s-app=metrics-server
+
+
+#Let's check the perf data for pods, but there's no pods in the default namespace
+kubectl top pods 
+
+
+#We can look at our system pods, CPU and memory 
+kubectl top pods --all-namespaces
+
+
+#Let's deploy a pod that will burn a lot of CPU, but single threaded we have two vCPUs in our nodes.
+kubectl apply -f cpuburner.yaml
+
+
+#And create a deployment and scale it.
+kubectl create deployment nginx --image=nginx
+kubectl scale  deployment nginx --replicas=3
+
+
+#Are our pods up and running?
+kubectl get pods -o wide
+
+
+#How about that CPU now, one of the nodes should have about 50% CPU, one should be 1000m+  Recall 1000m = 1vCPU.
+#We can see the resource allocations across the nodes in terms of CPU and memory.
+kubectl top nodes
+
+
+#Let's get the perf across all pods...it can take a second after the deployments are create to get data
+kubectl top pods 
+
+
+#We can use labels and selectors to query subsets of pods
+kubectl top pods -l app=cpuburner
+
+
+#And we have primitive sorting, top CPU and top memory consumers across all Pods
+kubectl top pods --sort-by=cpu
+kubectl top pods --sort-by=memory
+
+
+#Now, that cpuburner, let's look a little more closely at it we can ask for perf for the containers inside a pod
+kubectl top pods --containers
+
+
+
+#Clean up  our resources
+kubectl delete deployment cpuburner
+kubectl delete deployment nginx
+
+
+#Delete the Metrics Server and it's configuration elements
+kubectl delete -f components.yaml
