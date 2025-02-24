@@ -30,7 +30,7 @@ eksctl info
 eksctl get cluster
 
 eksctl create cluster \
-    --name lkt-temp-08 \
+    --name lkt-temp-10 \
     --region eu-west-1 \
     --fargate \
     --version 1.30 \
@@ -38,7 +38,7 @@ eksctl create cluster \
 
 # Add the cluster credentials to the local config file.
 # Kubeconfig file path: ~/.kube/config
-aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-08
+aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-10
 cat ~/.kube/config
 
 # Use kubectl to interact with kubernetes content.
@@ -3356,34 +3356,23 @@ kubectl delete -f deployment-5-corrected.yaml
 ### Video 042 ###
 #################
 
-ssh aen@c1-cp1
-cd ~/content/course/02/demos
-
-
-#1 - Investigating Certificate based authentication
-#We're using certificates to authenticate to our cluster
-#Our certificate information is stored in the .kube/config
-#kubectl reads the credentials and sends the API request on to the API Server
+# Investigating Certificate based authentication
+# We're using certificates to authenticate to our cluster
+# Our certificate information is stored in the .kube/config
+# kubectl reads the credentials and sends the API request on to the API Server
 kubectl config view
 kubectl config view --raw
 
-
-
-#Let's read the certificate information out of our kubeconfig file
-#Look for Subject: CN= is the username which is masterclient, it's also in the group (O=) system:masters
+# Let's read the certificate information out of our kubeconfig file
+# Look for Subject: CN= is the username which is masterclient, it's also in the group (O=) system:masters
 kubectl config view --raw -o jsonpath='{ .users[*].user.client-certificate-data }' | base64 --decode > admin.crt
 openssl x509 -in admin.crt -text -noout | head -n 15
 
-
-#We can use -v 6 to see the api request, and return code which is 200.
+# We can use -v 6 to see the api request, and return code which is 200.
 kubectl get pods -v 6
-
 
 #Clean up files no longer needed
 rm admin.crt
-
-
-
 
 #2 - Working with Service Accounts
 #Getting Service Accounts information
