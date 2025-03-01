@@ -3371,7 +3371,7 @@ openssl x509 -in admin.crt -text -noout | head -n 15
 # We can use -v 6 to see the api request, and return code which is 200.
 kubectl get pods -v 6
 
-#Clean up files no longer needed
+# Clean up files no longer needed
 rm admin.crt
 
 #2 - Working with Service Accounts
