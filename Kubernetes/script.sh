@@ -3450,30 +3450,273 @@ kubectl create rolebinding demorolebinding --role=demorole --serviceaccount=defa
 kubectl auth can-i list pods --as=system:serviceaccount:default:mysvcaccount1
 kubectl get pods -v 6 --as=system:serviceaccount:default:mysvcaccount1
 
-
-#Go back inside the pod again...
+# Go back inside the pod again.
 kubectl get pods 
 PODNAME=$(kubectl get pods -l app=nginx -o jsonpath='{ .items[*].metadata.name }')
 kubectl exec $PODNAME -it -- /bin/bash
 
-
-#Load the token and cacert into variables for reuse
+# Load the token and cacert into variables for reuse
 TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-
-#Now I can view objects...this isn't just for curl but for any application. 
-#Apps commonly use libraries to programmaticly interact with the api server for cluster state information 
+# Now I can view objects...this isn't just for curl but for any application. 
+# Apps commonly use libraries to programmaticly interact with the api server for cluster state information 
 curl --cacert $CACERT --header "Authorization: Bearer $TOKEN" -X GET https://kubernetes.default.svc/api/v1/namespaces/default/pods
 exit 
 
-
-#Clean up from this demo
+# Clean up from this demo
 kubectl delete deployment nginx
 kubectl delete serviceaccount mysvcaccount1
 kubectl delete role demorole 
 kubectl delete rolebinding demorolebinding 
 
 #################
-### Video 044 ###
+### Video 044 ### NOT READY
 #################
+
+# Investigating the PKI setup on the Control Plane Node
+# The core pki directory, contains the certs and keys for all core functions in your cluster, 
+# the self signed CA, server certificate and key for encryption by API Server, 
+# etcd's cert setup, sa (serviceaccount) and more.
+ls -l /etc/kubernetes/pki
+
+# Read the ca.crt to view the certificates information, useful to determine the validity date of the certifcate
+# You can use this command to read the information about any of the *.crt in this folder
+# Be sure to check out the validity and the Subject CN
+openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout | more
+
+# kubeconfig file location, for system components, controller manager, kubelet and scheduler.
+ls /etc/kubernetes
+
+# certificate-authority-data is a base64 encoded ca.cert
+# You can also see the server for the API Server is https
+# And there is also a client-certificate-data which is the client certificate used.
+# And client-key-data is the private key for the client cert. these are used to authenticate the client to the api server
+sudo more /etc/kubernetes/scheduler.conf
+sudo kubectl config view --kubeconfig=/etc/kubernetes/scheduler.conf 
+
+# The kube-proxy has it's kube-config as a configmap rather than a file on the file system.
+kubectl get configmap -n kube-system kube-proxy -o yaml
+
+#################
+### Video 045 ###
+#################
+
+# Create a certificate for a new user
+# https://kubernetes.io/docs/concepts/cluster-administration/certificates/#cfssl
+# Create a private key
+openssl genrsa -out demouser.key 2048
+
+# Generate a CSR
+# CN (Common Name) is your username, O (Organization) is the Group
+# If you get an error Can't load /home/USERNAME/.rnd into RNG - comment out RANDFILE from /etc/ssl/openssl.cnf 
+# see this link for more details https://github.com/openssl/openssl/issues/7754#issuecomment-541307674
+openssl req -new -key demouser.key -out demouser.csr -subj "/CN=demouser"
+
+# The certificate request we'll use in the CertificateSigningRequest
+cat demouser.csr
+
+# The CertificateSigningRequest needs to be base64 encoded
+# And also have the header and trailer pulled out.
+cat demouser.csr | base64 | tr -d "\n" > demouser.base64.csr
+
+# Submit the CertificateSigningRequest to the API Server
+# Key elements, name, request and usages (must be client auth)
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: demouser
+spec:
+  groups:
+  - system:authenticated  
+  request: $(cat demouser.base64.csr)
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
+EOF
+
+# Let's get the CSR to see it's current state. The CSR will delete after an hour
+# This should currently be Pending, awaiting administrative approval
+kubectl get certificatesigningrequests
+
+#Approve the CSR
+kubectl certificate approve demouser
+
+# If we get the state now, you'll see Approved, Issued. 
+# The CSR is updated with the certificate in .status.certificate
+kubectl get certificatesigningrequests demouser 
+
+#Retrieve the certificate from the CSR object, it's base64 encoded
+kubectl get certificatesigningrequests demouser \
+  -o jsonpath='{ .status.certificate }'  | base64 --decode
+
+# Let's go ahead and save the certificate into a local file. 
+# We're going to use this file to build a kubeconfig file to authenticate to the API Server with
+kubectl get certificatesigningrequests demouser \
+  -o jsonpath='{ .status.certificate }'  | base64 --decode > demouser.crt 
+
+# Check the contents of the file
+cat demouser.crt
+
+# Read the certficate itself
+# Key elements: Issuer is our CA, Validity one year, Subject CN=demouser
+openssl x509 -in demouser.crt -text -noout | head -n 15
+
+# Now that we have the certificate we can use that to build a kubeconfig file with to log into this cluster.
+# We'll use demouser.key and demouser.crt
+# More on that in an upcoming demo
+ls demouser.*
+
+#################
+### Video 046 ###
+#################
+
+# Working with kubeconfig files and contexts
+# Investigating your kubeconfig file, this came from /etc/kubernetes/admin.conf 
+# When you use kubeadm to build your cluster you copy admin.conf from /etc/kubernetes to ~/.kube/config
+kubectl config view
+kubectl config view --raw
+cat ~/.kube/config
+
+# Add a new context from Azure Kubernetes Service
+kubectl config delete-context kube@lkt-temp-10.eu-west-1.eksctl.io
+aws eks --region eu-west-1 update-kubeconfig --name lkt-temp-10
+
+# List our currently available contexts.
+kubectl config get-contexts
+
+# Set our current context to a differnt context.
+kubectl config use-context docker-desktop
+kubectl config use-context kube@lkt-temp-10.eu-west-1.eksctl.io
+kubectl config use-context arn:aws:eks:eu-west-1:047838238778:cluster/lkt-temp-10
+
+# Run a command to communicate with our cluster.
+kubectl cluster-info
+
+# Set our current context to a local cluster context.
+kubectl config use-context docker-desktop
+kubectl cluster-info
+
+# To delete kubeconfig entries
+kubectl config view
+kubectl config delete-context lkt-temp-10.eu-west-1.eksctl.io
+kubectl config delete-cluster lkt-temp-10.eu-west-1.eksctl.io
+kubectl config unset users.kube@lkt-temp-10.eu-west-1.eksctl.io
+
+# Creating a kubeconfig file for a new read only user. 
+# We'll be using our certificate and key from the last demo
+# demouser.key and demouser.crt
+
+#This could be a role, but I'm choosing the view ClusterRole here for read only access
+kubectl create clusterrolebinding demouserclusterrolebinding \
+  --clusterrole=view --user=demouser
+
+
+#Create the cluster entry, notice the kubeconfig parameter, this will generate a new file using that name.
+# embed-certs puts the cert data in the kubeconfig entry for this user
+kubectl config set-cluster kubernetes-demo \
+  --server=https://172.16.94.10:6443 \
+  --certificate-authority=/etc/kubernetes/pki/ca.crt \
+  --embed-certs=true \
+  --kubeconfig=demouser.conf
+
+
+#There's a new kubeconfig file in the current working directory
+ls demouser.conf
+
+
+#Let's confirm the cluster is create in there.
+kubectl config view --kubeconfig=demouser.conf
+
+
+#Add user to new kubeconfig file demouser.conf
+#Keep in mind there's several authentication methods, we're focusing on certificates here
+kubectl config set-credentials demouser \
+  --client-key=demouser.key \
+  --client-certificate=demouser.crt \
+  --embed-certs=true \
+  --kubeconfig=demouser.conf
+
+
+#Now we have a Cluster and a User
+kubectl config view --kubeconfig=demouser.conf
+
+
+#Add the context, context name, cluster name, user name
+kubectl config set-context demouser@kubernetes-demo  \
+  --cluster=kubernetes-demo \
+  --user=demouser \
+  --kubeconfig=demouser.conf
+
+
+#There's a cluster, a user, and a context defined
+kubectl config view --kubeconfig=demouser.conf
+
+
+#Set the current-context in the kubeconfig file
+#Set the context in the file this is a per kubeconfig file setting
+kubectl config use-context demouser@kubernetes-demo --kubeconfig=demouser.conf
+
+
+
+
+#3 - Using a new kubeconfig file for a new user
+#Create a workload...this is being executed as our normal admin user (kubernetes-admin)!
+#Notice in the output it's loading our ~/.kube/config
+kubectl create deployment nginx --image=nginx -v 6
+
+
+#Test the connection using our demouser kubeconfig file. This user is view only.
+#Notice which kubeconfig file was loaded demouser.conf and it will use the default context in the kubeconfig file
+kubectl get pods --kubeconfig=demouser.conf -v 6
+
+
+#Since this user is bound to the view ClusterRole, it cannot change or delete objects
+kubectl scale deployment nginx --replicas=2 --kubeconfig=demouser.conf
+
+
+#In addition to using --kubeconfig you can set your current kubeconfig with the KUBECONFIG enviroment variable
+#This is useful for switching between kubeconfig files
+export KUBECONFIG=demouser.conf
+kubectl get pods -v 6
+unset KUBECONFIG
+
+
+
+
+# 4 - Let's create a new linux user (-m creates the home director) and then create a new kubeconfig for that user
+sudo useradd -m demouser
+
+
+#Copy the demouser.conf kubeconfig to the home directory of demo user in the default kubeconfig location of .kube/config
+sudo mkdir -p /home/demouser/.kube
+sudo cp -i demouser.conf /home/demouser/.kube/config
+sudo chown -R demouser:demouser /home/demouser/.kube/
+
+
+#Switch over to this demo user
+sudo su demouser 
+cd 
+
+
+#Check out the kubeconf file, we don't need --kubeconfig since it's in the default location  ~/.kube/config
+kubectl config view
+
+
+#Test access as our new user, check where the config loaded from. Are there pods in the output?
+kubectl get pods -v 6
+
+
+#Change back to our regular user
+exit
+
+
+
+#Keep demouser.conf around for the demos in the next module on Role Based Access Controls.
+#This user is currently only view, in the next module we'll adjust its RBAC rules to edit the deployment
+#But let's delete that deployment
+kubectl delete deployment nginx
+
+###Be sure to delete the clusterrolebinding we created in step 2####
+kubectl delete clusterrolebinding demouserclusterrolebinding
